@@ -1,29 +1,13 @@
-import { auth } from "./auth";
-import { NextResponse } from "next/server";
+import NextAuth from "next-auth";
+import { authConfig } from "./auth.config";
 
-export default auth((req) => {
-  const isAuthenticated = !!req.auth;
-  const isAuthPage = req.nextUrl.pathname.startsWith("/login");
-  const isProtectedRoute =
-    req.nextUrl.pathname === "/feed" ||
-    req.nextUrl.pathname.startsWith("/post/") ||
-    req.nextUrl.pathname.startsWith("/profile/") ||
-    req.nextUrl.pathname === "/compose";
-
-  if (isAuthPage) {
-    if (isAuthenticated) {
-      return NextResponse.redirect(new URL("/feed", req.url));
-    }
-    return null;
-  }
-
-  if (isProtectedRoute && !isAuthenticated) {
-    return NextResponse.redirect(new URL("/login", req.url));
-  }
-
-  return null;
-});
+/**
+ * Middleware runs in the Edge Runtime — must NOT import mongoose or Node-only modules.
+ * We use `authConfig` (the edge-compatible config) here, not the full `auth.ts`.
+ */
+export default NextAuth(authConfig).auth;
 
 export const config = {
+  // Apply to all routes except Next.js internals, static files, and favicon
   matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
 };

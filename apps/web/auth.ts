@@ -4,6 +4,7 @@ import Google from "next-auth/providers/google";
 import { MongoDBAdapter } from "@auth/mongodb-adapter";
 import { connectDB, getMongoClient } from "@/lib/db";
 import { User } from "@/lib/models/User";
+import { authConfig } from "./auth.config";
 
 // The adapter needs a MongoClient promise
 const clientPromise = getMongoClient();
@@ -14,7 +15,10 @@ export const {
   signIn,
   signOut,
 } = NextAuth({
+  ...authConfig, // spread the edge-compatible base config
+
   adapter: MongoDBAdapter(clientPromise),
+
   providers: [
     GitHub({
       clientId: process.env.AUTH_GITHUB_ID!,
@@ -25,13 +29,11 @@ export const {
       clientSecret: process.env.AUTH_GOOGLE_SECRET!,
     }),
   ],
-  session: { strategy: "jwt" },
-  pages: {
-    signIn: "/login",
-  },
+
+  // Override callbacks with the full server-side logic
   callbacks: {
     async jwt({ token, user, profile }) {
-      // `user` is only present on the very first sign-in request
+      // `user` is only present on the very first sign-in
       if (user) {
         await connectDB();
 
@@ -56,10 +58,10 @@ export const {
       }
       return token;
     },
+
     async session({ session, token }) {
       if (session.user && token.sub) {
-        (session.user as typeof session.user & { _id: string })._id =
-          token.sub;
+        (session.user as typeof session.user & { _id: string })._id = token.sub;
       }
       return session;
     },

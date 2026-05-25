@@ -85,7 +85,7 @@ export default function NotificationsPage() {
         <div className="py-16 text-center">
           <p className="text-muted-foreground text-sm">No notifications yet.</p>
           <p className="text-muted-foreground/60 text-xs mt-1">
-            When someone follows or likes your posts, it'll show up here.
+            When someone follows or likes your posts, it&apos;ll show up here.
           </p>
         </div>
       )}

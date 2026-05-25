@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 
 interface RelativeTimeProps {
   date: string | Date;
@@ -26,7 +26,7 @@ function formatRelative(date: Date): string {
 }
 
 export function RelativeTime({ date, className }: RelativeTimeProps) {
-  const d = typeof date === "string" ? new Date(date) : date;
+  const d = useMemo(() => typeof date === "string" ? new Date(date) : date, [date]);
   const [text, setText] = useState(() => formatRelative(d));
 
   useEffect(() => {
