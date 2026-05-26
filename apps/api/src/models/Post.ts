@@ -7,6 +7,10 @@ const PostSchema = new Schema(
     imageUrl:     { type: String },
     likeCount:    { type: Number, default: 0 },
     commentCount: { type: Number, default: 0 },
+    hashtags:     [{ type: String }],
+    bookmarkCount:{ type: Number, default: 0 },
+    viewCount:    { type: Number, default: 0 },
+    isArchived:   { type: Boolean, default: false },
   },
   { timestamps: true }
 );

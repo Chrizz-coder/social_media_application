@@ -9,6 +9,11 @@ const UserSchema = new Schema(
     avatarUrl:      { type: String },
     followerCount:  { type: Number, default: 0 },
     followingCount: { type: Number, default: 0 },
+    isVerified:     { type: Boolean, default: false },
+    role:           { type: String, enum: ['user', 'creator', 'admin'], default: 'user' },
+    verifiedAt:     { type: Date },
+    bookmarksCount: { type: Number, default: 0 },
+    storiesCount:   { type: Number, default: 0 },
   },
   { timestamps: true }
 );

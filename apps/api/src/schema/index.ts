@@ -15,6 +15,11 @@ import {
   NotificationResolvers,
 } from './resolvers/notification';
 import { SearchQueries } from './resolvers/search';
+import { StoryQueries, StoryMutations, StoryResolvers, StoryGroupResolvers } from './resolvers/story';
+import { HashtagQueries, HashtagResolvers } from './resolvers/hashtag';
+import { BookmarkQueries, BookmarkMutations, BookmarkPostFieldResolvers } from './resolvers/bookmark';
+import { ExploreQueries } from './resolvers/explore';
+import { AdminMutations } from './resolvers/admin';
 import { pubsub, EVENTS } from '../pubsub';
 
 /** Custom Date scalar — serialises as ISO string. */
@@ -42,6 +47,10 @@ const resolvers = {
     ...FollowQueries,
     ...NotificationQueries,
     ...SearchQueries,
+    ...StoryQueries,
+    ...HashtagQueries,
+    ...BookmarkQueries,
+    ...ExploreQueries,
   },
 
   Mutation: {
@@ -49,6 +58,9 @@ const resolvers = {
     ...FollowMutations,
     ...LikeMutations,
     ...NotificationMutations,
+    ...StoryMutations,
+    ...BookmarkMutations,
+    ...AdminMutations,
   },
 
   Subscription: {
@@ -56,12 +68,22 @@ const resolvers = {
     postAdded: {
       subscribe: () => pubsub.asyncIterator([EVENTS.POST_ADDED]),
     },
+    newMessage: {
+      subscribe: (_: unknown, { conversationId }: { conversationId: string }) =>
+        pubsub.asyncIterator([`NEW_MESSAGE:${conversationId}`]),
+    },
+    newStory: {
+      subscribe: () => pubsub.asyncIterator([EVENTS.NEW_STORY]),
+    },
   },
 
   User:         UserResolvers,
-  Post:         PostResolvers,
+  Post:         { ...PostResolvers, ...BookmarkPostFieldResolvers },
   Comment:      CommentResolvers,
   Notification: NotificationResolvers,
+  Story:        StoryResolvers,
+  StoryGroup:   StoryGroupResolvers,
+  Hashtag:      HashtagResolvers,
 };
 
 export const schema = makeExecutableSchema({ typeDefs, resolvers });

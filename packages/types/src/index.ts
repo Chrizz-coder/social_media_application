@@ -7,6 +7,11 @@ export interface IUser {
   avatarUrl?: string;
   followerCount: number;
   followingCount: number;
+  isVerified: boolean;
+  role: 'user' | 'creator' | 'admin';
+  verifiedAt?: Date;
+  bookmarksCount: number;
+  storiesCount: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -18,6 +23,10 @@ export interface IPost {
   imageUrl?: string;
   likeCount: number;
   commentCount: number;
+  hashtags: string[];
+  bookmarkCount: number;
+  viewCount: number;
+  isArchived: boolean;
   createdAt: Date;
   updatedAt: Date;
 }

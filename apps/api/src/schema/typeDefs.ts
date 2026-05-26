@@ -15,6 +15,9 @@ export const typeDefs = gql`
     followerCount: Int!
     followingCount: Int!
     isFollowedByMe: Boolean!
+    isVerified: Boolean!
+    role: String!
+    bookmarksCount: Int!
     createdAt: Date!
   }
 
@@ -26,6 +29,11 @@ export const typeDefs = gql`
     likeCount: Int!
     commentCount: Int!
     likedByMe: Boolean!
+    hashtags: [String!]!
+    bookmarkCount: Int!
+    viewCount: Int!
+    bookmarkedByMe: Boolean!
+    isArchived: Boolean!
     createdAt: Date!
   }
 
@@ -91,6 +99,85 @@ export const typeDefs = gql`
     posts: [Post!]!
   }
 
+  # ─── Stories ───────────────────────────────────────────────────────────────
+
+  type Story {
+    id: ID!
+    author: User!
+    mediaUrl: String!
+    mediaType: String!
+    caption: String
+    viewerCount: Int!
+    hasViewedByMe: Boolean!
+    expiresAt: Date!
+    createdAt: Date!
+  }
+
+  type StoryGroup {
+    user: User!
+    stories: [Story!]!
+    hasUnviewed: Boolean!
+  }
+
+  # ─── Reels ────────────────────────────────────────────────────────────────
+
+  type Reel {
+    id: ID!
+    author: User!
+    videoUrl: String!
+    thumbnailUrl: String
+    caption: String
+    duration: Int!
+    likeCount: Int!
+    commentCount: Int!
+    viewCount: Int!
+    hashtags: [String!]!
+    likedByMe: Boolean!
+    bookmarkedByMe: Boolean!
+    createdAt: Date!
+  }
+
+  type ReelConnection {
+    edges: [Reel!]!
+    pageInfo: PageInfo!
+  }
+
+  # ─── Hashtags ─────────────────────────────────────────────────────────────
+
+  type Hashtag {
+    id: ID!
+    name: String!
+    postCount: Int!
+    reelCount: Int!
+    totalCount: Int!
+  }
+
+  # ─── Messaging ────────────────────────────────────────────────────────────
+
+  type Conversation {
+    id: ID!
+    participants: [User!]!
+    lastMessage: Message
+    lastMessageAt: Date
+    unreadCount: Int!
+  }
+
+  type Message {
+    id: ID!
+    conversation: Conversation!
+    sender: User!
+    content: String!
+    mediaUrl: String
+    mediaType: String
+    isRead: Boolean!
+    createdAt: Date!
+  }
+
+  type MessageConnection {
+    edges: [Message!]!
+    pageInfo: PageInfo!
+  }
+
   # ─── Queries ──────────────────────────────────────────────────────────────
 
   type Query {
@@ -106,6 +193,29 @@ export const typeDefs = gql`
     following(username: String!, limit: Int, cursor: String): UserConnection!
     notifications(limit: Int, cursor: String): NotificationConnection!
     search(query: String!, limit: Int): SearchResult!
+
+    # Stories
+    stories: [StoryGroup!]!
+    myStory: [Story!]!
+
+    # Reels
+    reels(limit: Int, cursor: String): ReelConnection!
+    userReels(username: String!, limit: Int, cursor: String): ReelConnection!
+    reel(id: ID!): Reel
+
+    # Messaging
+    conversations: [Conversation!]!
+    conversation(id: ID!): Conversation
+    messages(conversationId: ID!, limit: Int, cursor: String): MessageConnection!
+
+    # Bookmarks
+    bookmarks(limit: Int, cursor: String): PostConnection!
+
+    # Discovery
+    hashtag(name: String!): Hashtag
+    trendingHashtags(limit: Int): [Hashtag!]!
+    explore(limit: Int, cursor: String): PostConnection!
+    searchHashtags(query: String!, limit: Int): [Hashtag!]!
   }
 
   # ─── Mutations ────────────────────────────────────────────────────────────
@@ -115,6 +225,7 @@ export const typeDefs = gql`
     createPost(input: CreatePostInput!): Post!
     updatePost(id: ID!, input: UpdatePostInput!): Post!
     deletePost(id: ID!): Boolean!
+    archivePost(id: ID!): Boolean!
     # Comments
     createComment(input: CreateCommentInput!): Comment!
     deleteComment(id: ID!): Boolean!
@@ -125,6 +236,33 @@ export const typeDefs = gql`
     unlikePost(postId: ID!): Post!
     # Notifications
     markNotificationsRead: Boolean!
+
+    # Stories
+    createStory(input: CreateStoryInput!): Story!
+    deleteStory(id: ID!): Boolean!
+    viewStory(id: ID!): Boolean!
+
+    # Reels
+    createReel(input: CreateReelInput!): Reel!
+    deleteReel(id: ID!): Boolean!
+    likeReel(id: ID!): Reel!
+    unlikeReel(id: ID!): Reel!
+
+    # Bookmarks
+    bookmarkPost(postId: ID!): Boolean!
+    unbookmarkPost(postId: ID!): Boolean!
+    bookmarkReel(reelId: ID!): Boolean!
+    unbookmarkReel(reelId: ID!): Boolean!
+
+    # Messaging
+    sendMessage(input: SendMessageInput!): Message!
+    markConversationRead(conversationId: ID!): Boolean!
+    createOrGetConversation(userId: ID!): Conversation!
+
+    # Admin
+    verifyUser(userId: ID!): User!
+    unverifyUser(userId: ID!): User!
+    setUserRole(userId: ID!, role: String!): User!
   }
 
   # ─── Subscriptions ────────────────────────────────────────────────────────
@@ -132,6 +270,8 @@ export const typeDefs = gql`
   type Subscription {
     notificationReceived: Notification!
     postAdded: Post!
+    newMessage(conversationId: ID!): Message!
+    newStory: StoryGroup!
   }
 
   # ─── Inputs ───────────────────────────────────────────────────────────────
@@ -149,5 +289,26 @@ export const typeDefs = gql`
   input CreateCommentInput {
     postId: ID!
     content: String!
+  }
+
+  input CreateStoryInput {
+    mediaUrl: String!
+    mediaType: String!
+    caption: String
+  }
+
+  input CreateReelInput {
+    videoUrl: String!
+    thumbnailUrl: String
+    caption: String
+    duration: Int!
+    hashtags: [String!]
+  }
+
+  input SendMessageInput {
+    conversationId: ID!
+    content: String!
+    mediaUrl: String
+    mediaType: String
   }
 `;

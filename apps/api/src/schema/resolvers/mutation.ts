@@ -11,6 +11,7 @@ import {
   UpdatePostInputSchema,
   CreateCommentInputSchema,
 } from '../validators';
+import { parseHashtags, upsertHashtags, decrementHashtags } from './hashtag';
 
 function requireAuth(ctx: Context) {
   if (!ctx.viewer) {
@@ -40,7 +41,16 @@ export const MutationResolvers = {
     const viewer = requireAuth(ctx);
     const data = validate(CreatePostInputSchema, input);
 
-    const post = await Post.create({ ...data, author: viewer._id });
+    // Extract hashtags from content
+    const hashtags = parseHashtags(data.content);
+
+    const post = await Post.create({ ...data, author: viewer._id, hashtags });
+
+    // Upsert hashtag documents
+    if (hashtags.length > 0) {
+      upsertHashtags(hashtags, 'postCount').catch(() => {});
+    }
+
     const populated = await Post.findById(post._id).populate('author').lean<IPost>();
 
     // Publish to live-feed subscribers
@@ -80,6 +90,24 @@ export const MutationResolvers = {
 
     await Post.findByIdAndDelete(id);
     await Comment.deleteMany({ post: id });
+
+    // Decrement hashtag counts
+    const hashtags = (post as any).hashtags || [];
+    if (hashtags.length > 0) {
+      decrementHashtags(hashtags, 'postCount').catch(() => {});
+    }
+
+    return true;
+  },
+
+  async archivePost(_: unknown, { id }: { id: string }, ctx: Context): Promise<boolean> {
+    const viewer = requireAuth(ctx);
+    const post = await Post.findById(id).lean<IPost>();
+    if (!post) throw new GraphQLError('Post not found.', { extensions: { code: 'NOT_FOUND' } });
+    if (String(post.author) !== String(viewer._id))
+      throw new GraphQLError('Forbidden.', { extensions: { code: 'FORBIDDEN' } });
+
+    await Post.findByIdAndUpdate(id, { isArchived: true });
     return true;
   },
 

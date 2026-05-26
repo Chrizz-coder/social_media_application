@@ -2,11 +2,13 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { Heart, MessageCircle, Trash2, MoreHorizontal } from "lucide-react";
+import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal, Trash2, Flag } from "lucide-react";
 import { useMutation } from "@apollo/client/react";
+import { useState, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { Avatar } from "@/components/common/Avatar";
-import { RelativeTime } from "@/components/common/RelativeTime";
+import { VerifiedBadge } from "@/components/ui/VerifiedBadge";
+import { ParsedContent } from "@/components/ui/HashtagLink";
 import { LIKE_POST, UNLIKE_POST, DELETE_POST } from "@/lib/gql/mutations";
 
 interface PostCardProps {
@@ -23,14 +25,39 @@ interface PostCardProps {
       username: string;
       displayName: string;
       avatarUrl?: string | null;
+      isVerified?: boolean;
     };
   };
   viewerId?: string;
   onDelete?: (id: string) => void;
 }
 
+function relativeTime(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const s = Math.floor(diff / 1000);
+  if (s < 60) return `${s}s`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h`;
+  const d = Math.floor(h / 24);
+  if (d < 7) return `${d}d`;
+  return new Date(dateStr).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+function fullTimestamp(dateStr: string): string {
+  return new Date(dateStr).toLocaleString("en-US", {
+    month: "long", day: "numeric", year: "numeric",
+    hour: "numeric", minute: "2-digit",
+  }).toUpperCase();
+}
+
 export function PostCard({ post, viewerId, onDelete }: PostCardProps) {
   const isOwner = viewerId === post.author.id;
+  const [moreOpen, setMoreOpen] = useState(false);
+  const [likeAnim, setLikeAnim] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const moreRef = useRef<HTMLDivElement>(null);
 
   const [likePost]   = useMutation(LIKE_POST,   { variables: { postId: post.id } });
   const [unlikePost] = useMutation(UNLIKE_POST, { variables: { postId: post.id } });
@@ -51,6 +78,8 @@ export function PostCard({ post, viewerId, onDelete }: PostCardProps) {
         },
       });
     } else {
+      setLikeAnim(true);
+      setTimeout(() => setLikeAnim(false), 200);
       likePost({
         optimisticResponse: {
           likePost: { __typename: "Post", id: post.id, likeCount: post.likeCount + 1, likedByMe: true },
@@ -59,100 +88,214 @@ export function PostCard({ post, viewerId, onDelete }: PostCardProps) {
     }
   };
 
+  const handleDoubleTap = () => {
+    if (!post.likedByMe) toggleLike();
+  };
+
+  // Detect aspect ratio from imageUrl query params or default to square
+  const imgAspect = "4/5"; // default Instagram portrait
+
   return (
-    <article className="group border-b border-border px-4 py-4 transition-colors hover:bg-secondary/20 animate-fade-up">
-      <div className="flex gap-3">
-        {/* Avatar */}
-        <Link href={`/profile/${post.author.username}`} className="shrink-0">
+    <article
+      className="border-b animate-fade-up"
+      style={{ borderColor: "var(--color-border)", background: "var(--color-surface)" }}
+    >
+      {/* ── Header ─────────────────────────────────────────────────── */}
+      <div className="flex items-center justify-between px-3 py-3">
+        <Link href={`/profile/${post.author.username}`} className="flex items-center gap-2.5 min-w-0">
           <Avatar
             src={post.author.avatarUrl}
             alt={post.author.displayName}
-            size={44}
+            size={32}
           />
+          <div className="flex items-center gap-1 min-w-0">
+            <span
+              className="text-sm font-semibold truncate hover:opacity-70 transition-opacity"
+              style={{ color: "var(--color-text-primary)" }}
+            >
+              {post.author.username}
+            </span>
+            {post.author.isVerified && <VerifiedBadge size="sm" />}
+            <span style={{ color: "var(--color-text-secondary)", fontSize: 13 }}>
+              &nbsp;•&nbsp;{relativeTime(post.createdAt)}
+            </span>
+          </div>
         </Link>
 
-        <div className="min-w-0 flex-1">
-          {/* Author + time */}
-          <div className="flex items-baseline justify-between gap-2">
-            <div className="flex items-baseline gap-2 min-w-0">
-              <Link
-                href={`/profile/${post.author.username}`}
-                className="font-semibold hover:underline truncate"
-              >
-                {post.author.displayName}
-              </Link>
-              <span className="text-sm text-muted-foreground truncate">
-                @{post.author.username}
-              </span>
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <RelativeTime date={post.createdAt} className="text-xs text-muted-foreground" />
-              {isOwner && (
-                <button
-                  onClick={() => deletePost()}
-                  className="rounded-lg p-1 text-muted-foreground opacity-0 transition-all group-hover:opacity-100 hover:bg-destructive/15 hover:text-destructive"
-                  title="Delete post"
-                >
-                  <Trash2 size={14} />
-                </button>
-              )}
-            </div>
-          </div>
+        {/* More menu */}
+        <div className="relative" ref={moreRef}>
+          <button
+            onClick={() => setMoreOpen((v) => !v)}
+            className="p-1.5 rounded-full hover:bg-secondary transition-colors"
+            style={{ color: "var(--color-text-primary)" }}
+          >
+            <MoreHorizontal size={20} />
+          </button>
 
-          {/* Content */}
-          <Link href={`/post/${post.id}`}>
-            <p className="mt-1 text-sm leading-relaxed whitespace-pre-wrap break-words">
-              {post.content}
-            </p>
+          {moreOpen && (
+            <>
+              {/* Backdrop */}
+              <div
+                className="fixed inset-0 z-40"
+                onClick={() => setMoreOpen(false)}
+              />
+              <div
+                className="absolute right-0 top-full mt-1 z-50 rounded-xl overflow-hidden shadow-xl border w-44"
+                style={{ background: "var(--color-surface)", borderColor: "var(--color-border)" }}
+              >
+                {isOwner ? (
+                  <>
+                    <button
+                      onClick={() => { deletePost(); setMoreOpen(false); }}
+                      className="flex w-full items-center gap-2.5 px-4 py-3 text-sm font-semibold transition-colors hover:bg-secondary"
+                      style={{ color: "var(--color-danger)" }}
+                    >
+                      <Trash2 size={16} />
+                      Delete
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    onClick={() => setMoreOpen(false)}
+                    className="flex w-full items-center gap-2.5 px-4 py-3 text-sm font-semibold transition-colors hover:bg-secondary"
+                    style={{ color: "var(--color-danger)" }}
+                  >
+                    <Flag size={16} />
+                    Report
+                  </button>
+                )}
+                <button
+                  onClick={() => setMoreOpen(false)}
+                  className="flex w-full items-center px-4 py-3 text-sm transition-colors hover:bg-secondary"
+                  style={{ color: "var(--color-text-primary)" }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* ── Media ──────────────────────────────────────────────────── */}
+      {post.imageUrl ? (
+        <div
+          className="relative w-full overflow-hidden bg-black cursor-pointer"
+          style={{ aspectRatio: imgAspect }}
+          onDoubleClick={handleDoubleTap}
+        >
+          <Image
+            src={post.imageUrl}
+            alt="Post image"
+            fill
+            className="object-cover"
+            sizes="(max-width: 630px) 100vw, 630px"
+          />
+        </div>
+      ) : (
+        /* Text-only post */
+        <div
+          className="w-full px-3 py-2 cursor-pointer"
+          onDoubleClick={handleDoubleTap}
+        />
+      )}
+
+      {/* ── Action row ─────────────────────────────────────────────── */}
+      <div className="px-3 pt-3 pb-1 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          {/* Like */}
+          <button
+            onClick={toggleLike}
+            className="transition-opacity hover:opacity-60"
+            style={{ color: post.likedByMe ? "var(--color-danger)" : "var(--color-text-primary)" }}
+          >
+            <Heart
+              size={24}
+              strokeWidth={1.75}
+              className={cn(
+                "transition-transform",
+                likeAnim && "animate-like-pop",
+                post.likedByMe && "fill-current"
+              )}
+            />
+          </button>
+
+          {/* Comment */}
+          <Link
+            href={`/post/${post.id}`}
+            className="transition-opacity hover:opacity-60"
+            style={{ color: "var(--color-text-primary)" }}
+          >
+            <MessageCircle size={24} strokeWidth={1.75} />
           </Link>
 
-          {/* Image */}
-          {post.imageUrl && (
-            <Link href={`/post/${post.id}`}>
-              <div className="relative mt-3 overflow-hidden rounded-xl border border-border">
-                <Image
-                  src={post.imageUrl}
-                  alt="Post image"
-                  width={600}
-                  height={400}
-                  className="w-full object-cover max-h-80"
-                />
-              </div>
-            </Link>
-          )}
-
-          {/* Actions */}
-          <div className="mt-3 flex items-center gap-6">
-            {/* Like */}
-            <button
-              onClick={toggleLike}
-              className={cn(
-                "flex items-center gap-1.5 text-sm transition-all duration-150",
-                post.likedByMe
-                  ? "text-like"
-                  : "text-muted-foreground hover:text-like"
-              )}
-            >
-              <Heart
-                size={17}
-                className={cn(
-                  "transition-transform duration-150 active:scale-125",
-                  post.likedByMe && "fill-current"
-                )}
-              />
-              <span>{post.likeCount}</span>
-            </button>
-
-            {/* Comment */}
-            <Link
-              href={`/post/${post.id}`}
-              className="flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-primary"
-            >
-              <MessageCircle size={17} />
-              <span>{post.commentCount}</span>
-            </Link>
-          </div>
+          {/* Share */}
+          <button
+            className="transition-opacity hover:opacity-60"
+            style={{ color: "var(--color-text-primary)" }}
+          >
+            <Send size={24} strokeWidth={1.75} />
+          </button>
         </div>
+
+        {/* Bookmark (right-aligned) */}
+        <button
+          onClick={() => setSaved((v) => !v)}
+          className="transition-opacity hover:opacity-60"
+          style={{ color: "var(--color-text-primary)" }}
+        >
+          <Bookmark
+            size={24}
+            strokeWidth={1.75}
+            className={cn(saved && "fill-current")}
+          />
+        </button>
+      </div>
+
+      {/* ── Like count ─────────────────────────────────────────────── */}
+      {post.likeCount > 0 && (
+        <div className="px-3 pb-1">
+          <span className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>
+            {post.likeCount.toLocaleString()} {post.likeCount === 1 ? "like" : "likes"}
+          </span>
+        </div>
+      )}
+
+      {/* ── Caption ────────────────────────────────────────────────── */}
+      <div className="px-3 pb-1">
+        <span className="text-sm" style={{ color: "var(--color-text-primary)" }}>
+          <Link
+            href={`/profile/${post.author.username}`}
+            className="font-semibold hover:opacity-70 transition-opacity mr-1.5"
+          >
+            {post.author.username}
+          </Link>
+          <ParsedContent text={post.content} />
+        </span>
+      </div>
+
+      {/* ── Comments preview ───────────────────────────────────────── */}
+      {post.commentCount > 0 && (
+        <div className="px-3 pb-1">
+          <Link
+            href={`/post/${post.id}`}
+            className="text-sm hover:opacity-70 transition-opacity"
+            style={{ color: "var(--color-text-secondary)" }}
+          >
+            View all {post.commentCount} comment{post.commentCount !== 1 ? "s" : ""}
+          </Link>
+        </div>
+      )}
+
+      {/* ── Timestamp ──────────────────────────────────────────────── */}
+      <div className="px-3 pb-3">
+        <time
+          dateTime={post.createdAt}
+          className="text-[11px] tracking-wide uppercase"
+          style={{ color: "var(--color-text-secondary)" }}
+        >
+          {fullTimestamp(post.createdAt)}
+        </time>
       </div>
     </article>
   );

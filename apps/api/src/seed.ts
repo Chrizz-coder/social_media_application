@@ -6,6 +6,9 @@ import { connectDB } from './db';
 import { User } from './models/User';
 import { Post } from './models/Post';
 import { Comment } from './models/Comment';
+import { Story } from './models/Story';
+import { Reel } from './models/Reel';
+import { Hashtag } from './models/Hashtag';
 
 async function seed() {
   try {
@@ -15,6 +18,9 @@ async function seed() {
     await User.deleteMany({});
     await Post.deleteMany({});
     await Comment.deleteMany({});
+    await Story.deleteMany({});
+    await Reel.deleteMany({});
+    await Hashtag.deleteMany({});
     
     console.log('Creating users...');
     const users = await User.create([
@@ -25,9 +31,9 @@ async function seed() {
     
     console.log('Creating posts...');
     const posts = await Post.create([
-      { author: users[0]._id, content: 'Hello world from Alice!' },
+      { author: users[0]._id, content: 'Hello world from Alice!', hashtags: ['hello', 'firstpost'] },
       { author: users[0]._id, content: 'Alice dropping another post.' },
-      { author: users[1]._id, content: 'Bob checkin in.' },
+      { author: users[1]._id, content: 'Bob checkin in.', hashtags: ['vibes'] },
       { author: users[2]._id, content: 'Charlie in the building.' },
       { author: users[2]._id, content: 'Charlie out.' }
     ]);
@@ -38,11 +44,55 @@ async function seed() {
       { post: posts[0]._id, author: users[2]._id, content: 'I completely agree.' },
       { post: posts[0]._id, author: users[0]._id, content: 'Thanks!' }
     ]);
+
+    console.log('Creating stories...');
+    const stories = await Story.create([
+      {
+        author: users[0]._id,
+        mediaUrl: 'https://picsum.photos/seed/story1/1080/1920',
+        mediaType: 'image',
+        caption: 'Good morning everyone ☀️',
+      },
+      {
+        author: users[1]._id,
+        mediaUrl: 'https://picsum.photos/seed/story2/1080/1920',
+        mediaType: 'image',
+        caption: 'Sunset vibes 🌅',
+      },
+    ]);
+
+    console.log('Creating reels...');
+    const reels = await Reel.create([
+      {
+        author: users[0]._id,
+        videoUrl: 'https://example.com/videos/reel1.mp4',
+        thumbnailUrl: 'https://picsum.photos/seed/reel1/1080/1920',
+        caption: 'Check out this cool trick! #trending #cool',
+        duration: 30,
+        hashtags: ['trending', 'cool'],
+      },
+      {
+        author: users[2]._id,
+        videoUrl: 'https://example.com/videos/reel2.mp4',
+        thumbnailUrl: 'https://picsum.photos/seed/reel2/1080/1920',
+        caption: 'Day in my life 🎬 #vlog #dayinmylife',
+        duration: 60,
+        hashtags: ['vlog', 'dayinmylife'],
+      },
+    ]);
+
+    console.log('Creating hashtags...');
+    const hashtags = await Hashtag.create([
+      { name: 'trending', postCount: 0, reelCount: 1 },
+    ]);
     
     console.log('Seed completed successfully.');
     console.log('Inserted Users:', users.map(u => u._id));
     console.log('Inserted Posts:', posts.map(p => p._id));
     console.log('Inserted Comments:', comments.map(c => c._id));
+    console.log('Inserted Stories:', stories.map(s => s._id));
+    console.log('Inserted Reels:', reels.map(r => r._id));
+    console.log('Inserted Hashtags:', hashtags.map(h => h._id));
     
   } catch (error) {
     console.error('Seed failed:', error);

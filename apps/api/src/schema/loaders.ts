@@ -1,6 +1,8 @@
 import DataLoader from 'dataloader';
 import { User } from '../models/User';
 import { Like } from '../models/Like';
+import { Reel } from '../models/Reel';
+import { Conversation } from '../models/Conversation';
 import type { IUser } from '@social/types';
 
 /**
@@ -37,14 +39,36 @@ async function batchLoadIsLiked(keys: readonly string[]): Promise<boolean[]> {
   return keys.map((k) => likedSet.has(k));
 }
 
+/**
+ * Batch-load reels by MongoDB _id.
+ */
+async function batchLoadReels(ids: readonly string[]): Promise<(any | Error)[]> {
+  const reels = await Reel.find({ _id: { $in: ids as string[] } }).lean();
+  const map = new Map(reels.map((r) => [String(r._id), r]));
+  return ids.map((id) => map.get(String(id)) ?? new Error(`Reel not found: ${id}`));
+}
+
+/**
+ * Batch-load conversations by MongoDB _id.
+ */
+async function batchLoadConversations(ids: readonly string[]): Promise<(any | Error)[]> {
+  const convos = await Conversation.find({ _id: { $in: ids as string[] } }).lean();
+  const map = new Map(convos.map((c) => [String(c._id), c]));
+  return ids.map((id) => map.get(String(id)) ?? new Error(`Conversation not found: ${id}`));
+}
+
 export type Loaders = {
   userLoader: DataLoader<string, IUser>;
   isLikedLoader: DataLoader<string, boolean>;
+  reelLoader: DataLoader<string, any>;
+  conversationLoader: DataLoader<string, any>;
 };
 
 export function createLoaders(): Loaders {
   return {
-    userLoader:   new DataLoader<string, IUser>(batchLoadUsers),
-    isLikedLoader: new DataLoader<string, boolean>(batchLoadIsLiked),
+    userLoader:          new DataLoader<string, IUser>(batchLoadUsers),
+    isLikedLoader:       new DataLoader<string, boolean>(batchLoadIsLiked),
+    reelLoader:          new DataLoader<string, any>(batchLoadReels),
+    conversationLoader:  new DataLoader<string, any>(batchLoadConversations),
   };
 }
