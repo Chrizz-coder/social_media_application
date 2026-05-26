@@ -4,8 +4,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import {
-  House, Compass, Play, MessageCircle, Heart,
-  PlusSquare, User, Settings, Bookmark, LogOut, MoreHorizontal,
+  House, Compass, Film, MessageCircle, Heart,
+  PlusSquare, Bookmark, BarChart2, User,
+  MoreHorizontal, Settings, LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar } from "@/components/common/Avatar";
@@ -14,10 +15,14 @@ import { GET_NOTIFICATIONS } from "@/lib/gql/queries";
 import { useState } from "react";
 
 const navItems = [
-  { href: "/feed",          icon: House,         label: "Home" },
-  { href: "/search",        icon: Compass,       label: "Explore" },
-  { href: "/notifications", icon: Heart,         label: "Notifications", isNotif: true },
-  { href: "/compose",       icon: PlusSquare,    label: "Create" },
+  { href: "/feed",          icon: House,          label: "Home" },
+  { href: "/explore",       icon: Compass,        label: "Explore" },
+  { href: "/reels",         icon: Film,           label: "Reels" },
+  { href: "/messages",      icon: MessageCircle,  label: "Messages" },
+  { href: "/notifications", icon: Heart,          label: "Notifications", isNotif: true },
+  { href: "/saved",         icon: Bookmark,       label: "Saved" },
+  { href: "/analytics",     icon: BarChart2,      label: "Analytics" },
+  { href: "/compose",       icon: PlusSquare,     label: "Create" },
 ];
 
 export function Sidebar() {
@@ -32,7 +37,6 @@ export function Sidebar() {
     pollInterval: 30_000,
   });
   const unread = (notifData as any)?.notifications?.unreadCount ?? 0;
-
   const username = user?.username ?? user?._id ?? "me";
 
   return (
@@ -58,7 +62,7 @@ export function Sidebar() {
       </div>
 
       {/* Nav */}
-      <nav className="flex flex-col gap-0.5 px-3 flex-1">
+      <nav className="flex flex-col gap-0.5 px-3 flex-1 overflow-y-auto no-scrollbar">
         {navItems.map(({ href, icon: Icon, label, isNotif }) => {
           const active = pathname === href || pathname.startsWith(href + "/");
           return (
@@ -97,9 +101,7 @@ export function Sidebar() {
             href={`/profile/${username}`}
             className={cn(
               "group flex items-center gap-4 rounded-xl px-3 py-3 text-sm transition-all hover:bg-secondary",
-              (pathname === `/profile/${username}` || pathname.startsWith(`/profile/${username}/`))
-                ? "font-bold"
-                : "font-normal"
+              pathname.startsWith(`/profile/${username}`) ? "font-bold" : "font-normal"
             )}
             style={{ color: "var(--color-text-primary)" }}
           >
@@ -116,36 +118,38 @@ export function Sidebar() {
       {/* More menu */}
       <div className="px-3 pb-4 relative">
         {moreOpen && (
-          <div
-            className="absolute bottom-full left-3 mb-2 w-56 rounded-2xl shadow-xl border overflow-hidden z-50"
-            style={{ background: "var(--color-surface)", borderColor: "var(--color-border)" }}
-          >
-            <button
-              className="flex w-full items-center gap-3 px-4 py-3 text-sm hover:bg-secondary transition-colors"
-              style={{ color: "var(--color-text-primary)" }}
-              onClick={() => setMoreOpen(false)}
+          <>
+            <div className="fixed inset-0 z-40" onClick={() => setMoreOpen(false)} />
+            <div
+              className="absolute bottom-full left-3 mb-2 w-56 rounded-2xl shadow-xl border overflow-hidden z-50"
+              style={{ background: "var(--color-surface)", borderColor: "var(--color-border)" }}
             >
-              <Settings size={18} />
-              Settings
-            </button>
-            <button
-              className="flex w-full items-center gap-3 px-4 py-3 text-sm hover:bg-secondary transition-colors"
-              style={{ color: "var(--color-text-primary)" }}
-              onClick={() => setMoreOpen(false)}
-            >
-              <Bookmark size={18} />
-              Saved
-            </button>
-            <div style={{ height: 1, background: "var(--color-border)" }} />
-            <button
-              className="flex w-full items-center gap-3 px-4 py-3 text-sm hover:bg-secondary transition-colors"
-              style={{ color: "var(--color-danger)" }}
-              onClick={() => signOut({ callbackUrl: "/login" })}
-            >
-              <LogOut size={18} />
-              Log out
-            </button>
-          </div>
+              <Link
+                href="/settings/profile"
+                onClick={() => setMoreOpen(false)}
+                className="flex w-full items-center gap-3 px-4 py-3 text-sm hover:bg-secondary transition-colors"
+                style={{ color: "var(--color-text-primary)" }}
+              >
+                <Settings size={18} /> Settings
+              </Link>
+              <Link
+                href="/saved"
+                onClick={() => setMoreOpen(false)}
+                className="flex w-full items-center gap-3 px-4 py-3 text-sm hover:bg-secondary transition-colors"
+                style={{ color: "var(--color-text-primary)" }}
+              >
+                <Bookmark size={18} /> Saved
+              </Link>
+              <div style={{ height: 1, background: "var(--color-border)" }} />
+              <button
+                className="flex w-full items-center gap-3 px-4 py-3 text-sm hover:bg-secondary transition-colors"
+                style={{ color: "var(--color-danger)" }}
+                onClick={() => signOut({ callbackUrl: "/login" })}
+              >
+                <LogOut size={18} /> Log out
+              </button>
+            </div>
+          </>
         )}
 
         <button
@@ -166,7 +170,7 @@ export function Sidebar() {
                 {user.username ?? user.name}
               </p>
               <p className="truncate text-xs" style={{ color: "var(--color-text-secondary)" }}>
-                {user.name}
+                @{user.username ?? user.name}
               </p>
             </div>
           </div>
@@ -176,7 +180,7 @@ export function Sidebar() {
   );
 }
 
-/* Tablet icon-only sidebar (72px wide) */
+/* ── Tablet icon-only sidebar (72px wide) ───────────────────────────────── */
 export function SidebarCompact() {
   const pathname = usePathname();
   const { data: session } = useSession();
@@ -197,7 +201,7 @@ export function SidebarCompact() {
 
   return (
     <aside
-      className="sticky top-0 flex h-screen flex-col items-center border-r bg-background pt-6 gap-2"
+      className="sticky top-0 flex h-screen flex-col items-center border-r bg-background pt-6 gap-1 overflow-y-auto no-scrollbar"
       style={{ borderColor: "var(--color-border)", width: 72 }}
     >
       <Link href="/feed" className="mb-4">
