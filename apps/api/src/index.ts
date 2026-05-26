@@ -9,13 +9,10 @@ import { useServer } from 'graphql-ws/use/ws';
 import { ApolloServer } from '@apollo/server';
 import { expressMiddleware } from '@apollo/server/express4';
 import { ApolloServerPluginDrainHttpServer } from '@apollo/server/plugin/drainHttpServer';
-import jwt from 'jsonwebtoken';
 import { connectDB } from './db';
 import { schema } from './schema';
-import { createContext } from './context';
+import { createContext, resolveViewerFromToken } from './context';
 import { createLoaders } from './schema/loaders';
-import { User } from './models/User';
-import type { IUser } from '@social/types';
 
 async function main() {
   // ── 1. Connect to MongoDB ────────────────────────────────────────────────
@@ -43,18 +40,15 @@ async function main() {
     {
       schema,
       context: async (ctx) => {
-        // connectionParams is how the client sends the JWT over WS
-        const token = (ctx.connectionParams as any)?.authorization?.replace?.('Bearer ', '');
-        if (!token) return { viewer: null, loaders: createLoaders() };
-        try {
-          const secret = process.env.JWT_SECRET;
-          if (!secret) return { viewer: null, loaders: createLoaders() };
-          const decoded = jwt.verify(token, secret) as { userId: string };
-          const user = await User.findById(decoded.userId).lean<IUser>();
-          return { viewer: user ?? null, loaders: createLoaders() };
-        } catch {
-          return { viewer: null, loaders: createLoaders() };
-        }
+        // Extract token from connectionParams (supports both 'authorization' and 'token')
+        const params = ctx.connectionParams as Record<string, unknown> | undefined;
+        const rawToken =
+          (params?.authorization as string)?.replace?.('Bearer ', '') ||
+          (params?.token as string) ||
+          null;
+
+        const { viewer } = await resolveViewerFromToken(rawToken);
+        return { viewer, loaders: createLoaders() };
       },
     },
     wsServer

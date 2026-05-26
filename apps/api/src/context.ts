@@ -29,6 +29,17 @@ export async function createContext({
   }
 
   const token = authHeader.slice(7); // strip "Bearer "
+  return resolveViewerFromToken(token);
+}
+
+/**
+ * Resolve a viewer (IUser) from a raw JWT token string.
+ * Shared by both HTTP context and WebSocket subscription context.
+ */
+export async function resolveViewerFromToken(
+  token: string | null | undefined
+): Promise<BaseContext> {
+  if (!token) return { viewer: null };
 
   try {
     const secret = process.env.JWT_SECRET;

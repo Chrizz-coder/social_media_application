@@ -100,3 +100,53 @@ export const UNBOOKMARK_POST = gql`
     unbookmarkPost(postId: $postId)
   }
 `;
+
+// ── DMs ─────────────────────────────────────────────────────────────────────
+export const SEND_MESSAGE = gql`
+  mutation SendMessage($input: SendMessageInput!) {
+    sendMessage(input: $input) {
+      id content mediaUrl isRead createdAt
+      sender { id username displayName avatarUrl }
+      conversation { id }
+    }
+  }
+`;
+
+export const CREATE_OR_GET_CONVERSATION = gql`
+  mutation CreateOrGetConversation($userId: ID!) {
+    createOrGetConversation(userId: $userId) {
+      id
+      participants { id username displayName avatarUrl }
+    }
+  }
+`;
+
+export const MARK_CONVERSATION_READ = gql`
+  mutation MarkConversationRead($conversationId: ID!) {
+    markConversationRead(conversationId: $conversationId)
+  }
+`;
+
+// ── Reels ───────────────────────────────────────────────────────────────────
+export const CREATE_REEL = gql`
+  mutation CreateReel($input: CreateReelInput!) {
+    createReel(input: $input) {
+      id videoUrl thumbnailUrl caption duration likeCount commentCount
+      hashtags likedByMe bookmarkedByMe createdAt
+      author { id username displayName avatarUrl }
+    }
+  }
+`;
+
+export const LIKE_REEL = gql`
+  mutation LikeReel($id: ID!) {
+    likeReel(id: $id) { id likeCount likedByMe }
+  }
+`;
+
+export const UNLIKE_REEL = gql`
+  mutation UnlikeReel($id: ID!) {
+    unlikeReel(id: $id) { id likeCount likedByMe }
+  }
+`;
+

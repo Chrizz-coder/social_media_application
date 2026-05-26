@@ -172,3 +172,79 @@ export const GET_TRENDING_HASHTAGS = gql`
   }
   ${HASHTAG_FRAGMENT}
 `;
+
+export const SEARCH_HASHTAGS = gql`
+  query SearchHashtags($query: String!, $limit: Int) {
+    searchHashtags(query: $query, limit: $limit) {
+      id
+      name
+      totalCount
+    }
+  }
+`;
+
+// ── DMs ─────────────────────────────────────────────────────────────────────
+export const GET_CONVERSATIONS = gql`
+  query GetConversations {
+    conversations {
+      id
+      lastMessageAt
+      unreadCount
+      participants { id username displayName avatarUrl }
+      lastMessage { id content createdAt sender { id } }
+    }
+  }
+`;
+
+export const GET_MESSAGES = gql`
+  query GetMessages($conversationId: ID!, $limit: Int, $cursor: String) {
+    messages(conversationId: $conversationId, limit: $limit, cursor: $cursor) {
+      edges {
+        id content mediaUrl mediaType isRead createdAt
+        sender { id username displayName avatarUrl }
+        conversation { id }
+      }
+      pageInfo { hasNextPage endCursor }
+    }
+  }
+`;
+
+// ── Reels ───────────────────────────────────────────────────────────────────
+export const GET_REELS = gql`
+  query GetReels($limit: Int, $cursor: String) {
+    reels(limit: $limit, cursor: $cursor) {
+      edges {
+        id videoUrl thumbnailUrl caption duration likeCount commentCount viewCount
+        hashtags likedByMe bookmarkedByMe createdAt
+        author { id username displayName avatarUrl isVerified isFollowedByMe }
+      }
+      pageInfo { hasNextPage endCursor }
+    }
+  }
+`;
+
+export const GET_USER_REELS = gql`
+  query GetUserReels($username: String!, $limit: Int, $cursor: String) {
+    userReels(username: $username, limit: $limit, cursor: $cursor) {
+      edges {
+        id videoUrl thumbnailUrl caption duration likeCount commentCount viewCount
+        hashtags likedByMe bookmarkedByMe createdAt
+        author { id username displayName avatarUrl }
+      }
+      pageInfo { hasNextPage endCursor }
+    }
+  }
+`;
+
+// ── Analytics ───────────────────────────────────────────────────────────────
+export const GET_POST_ANALYTICS = gql`
+  query GetPostAnalytics($postId: ID!) {
+    postAnalytics(postId: $postId) {
+      impressions reach saves engagementRate likeCount commentCount
+      reachByDay   { date count }
+      likesByDay   { date count }
+      commentsByDay { date count }
+      post { id content imageUrl createdAt author { username displayName } }
+    }
+  }
+`;

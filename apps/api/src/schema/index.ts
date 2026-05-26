@@ -1,5 +1,5 @@
 import { makeExecutableSchema } from '@graphql-tools/schema';
-import { GraphQLScalarType, Kind } from 'graphql';
+import { GraphQLScalarType, Kind, GraphQLError } from 'graphql';
 import { typeDefs } from './typeDefs';
 import { QueryResolvers } from './resolvers/query';
 import { MutationResolvers } from './resolvers/mutation';
@@ -24,6 +24,9 @@ import { DMQueries, DMMutations, MessageResolvers, ConversationResolvers } from 
 import { ReelQueries, ReelMutations, ReelFieldResolvers } from './resolvers/reel';
 import { AnalyticsQueries, PostAnalyticsResolvers } from './resolvers/analytics';
 import { pubsub, EVENTS } from '../pubsub';
+import { Conversation } from '../models/Conversation';
+import { Follow } from '../models/Follow';
+import type { Context } from '../context';
 
 /** Custom Date scalar — serialises as ISO string. */
 const DateScalar = new GraphQLScalarType({
@@ -41,6 +44,36 @@ const DateScalar = new GraphQLScalarType({
     return null;
   },
 });
+
+/**
+ * withFilter helper — wraps an asyncIterator to only yield events
+ * that pass the filter function. Compatible with graphql-subscriptions PubSub.
+ */
+function withFilter(
+  iteratorFn: (...args: any[]) => AsyncIterator<any>,
+  filterFn: (payload: any, variables: any, context: any) => boolean | Promise<boolean>
+) {
+  return (...args: any[]) => {
+    const iterator = iteratorFn(...args);
+    const [, variables, context] = args;
+
+    return {
+      async next(): Promise<IteratorResult<any>> {
+        while (true) {
+          const result = await iterator.next();
+          if (result.done) return result;
+          const passes = await filterFn(result.value, variables, context);
+          if (passes) return result;
+        }
+      },
+      return: iterator.return?.bind(iterator),
+      throw: iterator.throw?.bind(iterator),
+      [Symbol.asyncIterator]() {
+        return this;
+      },
+    };
+  };
+}
 
 const resolvers = {
   Date: DateScalar,
@@ -73,15 +106,57 @@ const resolvers = {
 
   Subscription: {
     ...NotificationSubscriptions,
+
     postAdded: {
       subscribe: () => pubsub.asyncIterator([EVENTS.POST_ADDED]),
     },
+
     newMessage: {
-      subscribe: (_: unknown, { conversationId }: { conversationId: string }) =>
-        pubsub.asyncIterator([`NEW_MESSAGE:${conversationId}`]),
+      subscribe: withFilter(
+        (_: unknown, { conversationId }: { conversationId: string }) =>
+          pubsub.asyncIterator([`NEW_MESSAGE:${conversationId}`]),
+        async (payload: any, variables: { conversationId: string }, context: Context) => {
+          // Auth required
+          if (!context.viewer) return false;
+
+          // Verify viewer is a participant in the conversation
+          const convo = await Conversation.findById(variables.conversationId).lean();
+          if (!convo) return false;
+
+          const isParticipant = (convo as any).participants.some(
+            (p: any) => String(p) === String(context.viewer!._id)
+          );
+          return isParticipant;
+        }
+      ),
     },
+
     newStory: {
-      subscribe: () => pubsub.asyncIterator([EVENTS.NEW_STORY]),
+      subscribe: withFilter(
+        () => pubsub.asyncIterator([EVENTS.NEW_STORY]),
+        async (payload: any, _variables: unknown, context: Context) => {
+          // Auth required
+          if (!context.viewer) return false;
+
+          // Only push to viewers who follow the story author
+          const storyGroup = payload.newStory;
+          if (!storyGroup) return false;
+
+          const authorId = String(storyGroup.user);
+          const viewerId = String(context.viewer._id);
+
+          // Always show own stories
+          if (authorId === viewerId) return true;
+
+          // Check if viewer follows the author
+          const followExists = await Follow.exists({
+            follower: context.viewer._id,
+            following: authorId,
+          });
+
+          return !!followExists;
+        }
+      ),
     },
   },
 

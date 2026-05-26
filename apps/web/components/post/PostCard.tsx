@@ -19,6 +19,9 @@ interface PostCardProps {
     likeCount: number;
     commentCount: number;
     likedByMe: boolean;
+    bookmarkedByMe?: boolean;
+    bookmarkCount?: number;
+    hashtags?: string[];
     createdAt: string;
     author: {
       id: string;

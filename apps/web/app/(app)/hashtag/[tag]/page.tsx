@@ -15,7 +15,8 @@ type Tab = "top" | "recent";
 // Custom GET_POSTS_BY_HASHTAG — we re-use GET_POSTS from the search results
 // The backend resolver supports `posts` which returns all posts sorted by date.
 // We filter client-side from the search results for the hashtag page for now.
-import { gql, useQuery as useApolloQuery } from "@apollo/client";
+import { gql } from "@apollo/client";
+import { useQuery as useApolloQuery } from "@apollo/client/react";
 
 const GET_POSTS_BY_HASHTAG = gql`
   query GetPostsByHashtag($query: String!, $limit: Int) {
