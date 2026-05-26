@@ -1,6 +1,14 @@
 import { gql } from "@apollo/client";
 import { POST_FRAGMENT, COMMENT_FRAGMENT, USER_FRAGMENT } from "./fragments";
 
+export const UPDATE_PROFILE = gql`
+  mutation UpdateProfile($input: UpdateProfileInput!) {
+    updateProfile(input: $input) {
+      id username displayName bio avatarUrl
+    }
+  }
+`;
+
 export const CREATE_POST = gql`
   mutation CreatePost($input: CreatePostInput!) {
     createPost(input: $input) { ...PostFragment }

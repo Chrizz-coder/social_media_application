@@ -8,18 +8,22 @@ import { GET_STORIES } from "@/lib/gql/queries";
 import { useState } from "react";
 import { StoryViewer } from "./StoryViewer";
 import { CreateStorySheet } from "./CreateStorySheet";
+import { StoryBarSkeleton } from "@/components/ui/Skeletons";
 import { PlusCircle } from "lucide-react";
 
 export function StoryBar() {
   const { data: session } = useSession();
   const viewer = session?.user as any;
 
-  const { data } = useQuery(GET_STORIES, { skip: !viewer });
+  const { data, loading } = useQuery(GET_STORIES, { skip: !viewer });
   const groups: any[] = (data as any)?.stories ?? [];
 
   const [viewingGroup, setViewingGroup] = useState<number | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [pressTimer, setPressTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
+
+  if (loading) return <StoryBarSkeleton />;
+
 
   const myGroup = groups.find((g: any) => g.user.id === (viewer?.id ?? viewer?._id));
   const otherGroups = groups

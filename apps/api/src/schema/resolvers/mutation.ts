@@ -3,6 +3,7 @@ import { Post } from '../../models/Post';
 import { Comment } from '../../models/Comment';
 import { Notification } from '../../models/Notification';
 import { Follow } from '../../models/Follow';
+import { User } from '../../models/User';
 import { pubsub, EVENTS } from '../../pubsub';
 import type { Context } from '../../context';
 import type { IPost, IComment, INotification } from '@social/types';
@@ -37,6 +38,19 @@ function validate<T>(
 }
 
 export const MutationResolvers = {
+  async updateProfile(
+    _: unknown,
+    { input }: { input: { displayName?: string; bio?: string; avatarUrl?: string } },
+    ctx: Context
+  ) {
+    const viewer = requireAuth(ctx);
+    const update: Record<string, unknown> = {};
+    if (input.displayName !== undefined) update.displayName = input.displayName;
+    if (input.bio         !== undefined) update.bio         = input.bio;
+    if (input.avatarUrl   !== undefined) update.avatarUrl   = input.avatarUrl;
+    return User.findByIdAndUpdate(viewer._id, update, { new: true }).lean();
+  },
+
   async createPost(_: unknown, { input }: { input: unknown }, ctx: Context): Promise<IPost> {
     const viewer = requireAuth(ctx);
     const data = validate(CreatePostInputSchema, input);

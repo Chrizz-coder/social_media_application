@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal, Trash2, Flag } from "lucide-react";
 import { useMutation } from "@apollo/client/react";
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { Avatar } from "@/components/common/Avatar";
 import { VerifiedBadge } from "@/components/ui/VerifiedBadge";
@@ -59,9 +59,14 @@ export function PostCard({ post, viewerId, onDelete }: PostCardProps) {
   const isOwner = viewerId === post.author.id;
   const [moreOpen, setMoreOpen] = useState(false);
   const [likeAnim, setLikeAnim] = useState(false);
+  const [heartOverlay, setHeartOverlay] = useState(false);
+  const [bookmarkAnim, setBookmarkAnim] = useState(false);
   const moreRef = useRef<HTMLDivElement>(null);
 
-  const [likePost]   = useMutation(LIKE_POST,   { variables: { postId: post.id } });
+  // Double-tap detection
+  const lastTapRef = useRef<number>(0);
+
+  const [likePost] = useMutation(LIKE_POST, { variables: { postId: post.id } });
   const [unlikePost] = useMutation(UNLIKE_POST, { variables: { postId: post.id } });
   const [deletePost] = useMutation(DELETE_POST, {
     variables: { id: post.id },
@@ -100,9 +105,23 @@ export function PostCard({ post, viewerId, onDelete }: PostCardProps) {
   });
 
   const toggleBookmark = () => {
+    setBookmarkAnim(true);
+    setTimeout(() => setBookmarkAnim(false), 220);
     if (post.bookmarkedByMe) unbookmarkPost();
     else bookmarkPost();
   };
+
+  const triggerLike = useCallback(() => {
+    if (!post.likedByMe) {
+      setLikeAnim(true);
+      setTimeout(() => setLikeAnim(false), 220);
+      likePost({
+        optimisticResponse: {
+          likePost: { __typename: "Post", id: post.id, likeCount: post.likeCount + 1, likedByMe: true },
+        },
+      });
+    }
+  }, [post.likedByMe, post.id, post.likeCount, likePost]);
 
   const toggleLike = () => {
     if (post.likedByMe) {
@@ -113,7 +132,7 @@ export function PostCard({ post, viewerId, onDelete }: PostCardProps) {
       });
     } else {
       setLikeAnim(true);
-      setTimeout(() => setLikeAnim(false), 200);
+      setTimeout(() => setLikeAnim(false), 220);
       likePost({
         optimisticResponse: {
           likePost: { __typename: "Post", id: post.id, likeCount: post.likeCount + 1, likedByMe: true },
@@ -122,12 +141,16 @@ export function PostCard({ post, viewerId, onDelete }: PostCardProps) {
     }
   };
 
-  const handleDoubleTap = () => {
-    if (!post.likedByMe) toggleLike();
+  // Double-tap to like with big heart overlay
+  const handleTap = () => {
+    const now = Date.now();
+    if (now - lastTapRef.current < 300) {
+      triggerLike();
+      setHeartOverlay(true);
+      setTimeout(() => setHeartOverlay(false), 800);
+    }
+    lastTapRef.current = now;
   };
-
-  // Detect aspect ratio from imageUrl query params or default to square
-  const imgAspect = "4/5"; // default Instagram portrait
 
   return (
     <article
@@ -137,11 +160,7 @@ export function PostCard({ post, viewerId, onDelete }: PostCardProps) {
       {/* ── Header ─────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between px-3 py-3">
         <Link href={`/profile/${post.author.username}`} className="flex items-center gap-2.5 min-w-0">
-          <Avatar
-            src={post.author.avatarUrl}
-            alt={post.author.displayName}
-            size={32}
-          />
+          <Avatar src={post.author.avatarUrl} alt={post.author.displayName} size={32} />
           <div className="flex items-center gap-1 min-w-0">
             <span
               className="text-sm font-semibold truncate hover:opacity-70 transition-opacity"
@@ -160,7 +179,7 @@ export function PostCard({ post, viewerId, onDelete }: PostCardProps) {
         <div className="relative" ref={moreRef}>
           <button
             onClick={() => setMoreOpen((v) => !v)}
-            className="p-1.5 rounded-full hover:bg-secondary transition-colors"
+            className="touch-target rounded-full hover:bg-secondary transition-colors"
             style={{ color: "var(--color-text-primary)" }}
           >
             <MoreHorizontal size={20} />
@@ -168,34 +187,26 @@ export function PostCard({ post, viewerId, onDelete }: PostCardProps) {
 
           {moreOpen && (
             <>
-              {/* Backdrop */}
-              <div
-                className="fixed inset-0 z-40"
-                onClick={() => setMoreOpen(false)}
-              />
+              <div className="fixed inset-0 z-40" onClick={() => setMoreOpen(false)} />
               <div
                 className="absolute right-0 top-full mt-1 z-50 rounded-xl overflow-hidden shadow-xl border w-44"
                 style={{ background: "var(--color-surface)", borderColor: "var(--color-border)" }}
               >
                 {isOwner ? (
-                  <>
-                    <button
-                      onClick={() => { deletePost(); setMoreOpen(false); }}
-                      className="flex w-full items-center gap-2.5 px-4 py-3 text-sm font-semibold transition-colors hover:bg-secondary"
-                      style={{ color: "var(--color-danger)" }}
-                    >
-                      <Trash2 size={16} />
-                      Delete
-                    </button>
-                  </>
+                  <button
+                    onClick={() => { deletePost(); setMoreOpen(false); }}
+                    className="flex w-full items-center gap-2.5 px-4 py-3 text-sm font-semibold transition-colors hover:bg-secondary"
+                    style={{ color: "var(--color-danger)" }}
+                  >
+                    <Trash2 size={16} /> Delete
+                  </button>
                 ) : (
                   <button
                     onClick={() => setMoreOpen(false)}
                     className="flex w-full items-center gap-2.5 px-4 py-3 text-sm font-semibold transition-colors hover:bg-secondary"
                     style={{ color: "var(--color-danger)" }}
                   >
-                    <Flag size={16} />
-                    Report
+                    <Flag size={16} /> Report
                   </button>
                 )}
                 <button
@@ -214,9 +225,9 @@ export function PostCard({ post, viewerId, onDelete }: PostCardProps) {
       {/* ── Media ──────────────────────────────────────────────────── */}
       {post.imageUrl ? (
         <div
-          className="relative w-full overflow-hidden bg-black cursor-pointer"
-          style={{ aspectRatio: imgAspect }}
-          onDoubleClick={handleDoubleTap}
+          className="relative w-full overflow-hidden bg-black cursor-pointer select-none"
+          style={{ aspectRatio: "4/5" }}
+          onClick={handleTap}
         >
           <Image
             src={post.imageUrl}
@@ -224,30 +235,42 @@ export function PostCard({ post, viewerId, onDelete }: PostCardProps) {
             fill
             className="object-cover"
             sizes="(max-width: 630px) 100vw, 630px"
+            draggable={false}
           />
+          {/* Double-tap heart overlay */}
+          {heartOverlay && (
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <Heart
+                size={96}
+                className="animate-heart-burst fill-white drop-shadow-2xl"
+                style={{ color: "white" }}
+              />
+            </div>
+          )}
         </div>
       ) : (
-        /* Text-only post */
+        /* Text-only post — tappable area */
         <div
-          className="w-full px-3 py-2 cursor-pointer"
-          onDoubleClick={handleDoubleTap}
+          className="w-full px-3 py-2 cursor-pointer select-none"
+          onClick={handleTap}
         />
       )}
 
       {/* ── Action row ─────────────────────────────────────────────── */}
       <div className="px-3 pt-3 pb-1 flex items-center justify-between">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-1">
           {/* Like */}
           <button
             onClick={toggleLike}
-            className="transition-opacity hover:opacity-60"
+            className="touch-target transition-opacity hover:opacity-60"
             style={{ color: post.likedByMe ? "var(--color-danger)" : "var(--color-text-primary)" }}
+            aria-label="Like post"
           >
             <Heart
               size={24}
               strokeWidth={1.75}
               className={cn(
-                "transition-transform",
+                "transition-colors",
                 likeAnim && "animate-like-pop",
                 post.likedByMe && "fill-current"
               )}
@@ -257,16 +280,18 @@ export function PostCard({ post, viewerId, onDelete }: PostCardProps) {
           {/* Comment */}
           <Link
             href={`/post/${post.id}`}
-            className="transition-opacity hover:opacity-60"
+            className="touch-target transition-opacity hover:opacity-60"
             style={{ color: "var(--color-text-primary)" }}
+            aria-label="View comments"
           >
             <MessageCircle size={24} strokeWidth={1.75} />
           </Link>
 
           {/* Share */}
           <button
-            className="transition-opacity hover:opacity-60"
+            className="touch-target transition-opacity hover:opacity-60"
             style={{ color: "var(--color-text-primary)" }}
+            aria-label="Share post"
           >
             <Send size={24} strokeWidth={1.75} />
           </button>
@@ -275,13 +300,17 @@ export function PostCard({ post, viewerId, onDelete }: PostCardProps) {
         {/* Bookmark (right-aligned) */}
         <button
           onClick={toggleBookmark}
-          className="transition-opacity hover:opacity-60"
+          className="touch-target transition-opacity hover:opacity-60"
           style={{ color: "var(--color-text-primary)" }}
+          aria-label="Bookmark post"
         >
           <Bookmark
             size={24}
             strokeWidth={1.75}
-            className={cn(post.bookmarkedByMe && "fill-current")}
+            className={cn(
+              bookmarkAnim && "animate-bookmark-pulse",
+              post.bookmarkedByMe && "fill-current"
+            )}
           />
         </button>
       </div>

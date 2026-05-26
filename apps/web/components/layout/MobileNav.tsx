@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { House, Compass, PlusSquare, Heart, User, MessageCircle } from "lucide-react";
+import { House, Compass, PlusSquare, Heart, MessageCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar } from "@/components/common/Avatar";
 import { useQuery } from "@apollo/client/react";
@@ -20,12 +20,11 @@ export function MobileNav() {
     pollInterval: 30_000,
   });
   const unread = (notifData as any)?.notifications?.unreadCount ?? 0;
-
   const username = user?.username ?? user?._id ?? "me";
 
   const tabs = [
     { href: "/feed",          icon: House,      label: "Home" },
-    { href: "/search",        icon: Compass,    label: "Search" },
+    { href: "/explore",       icon: Compass,    label: "Search" },
     { href: "/compose",       icon: PlusSquare, label: "Create" },
     { href: "/notifications", icon: Heart,      label: "Activity", isNotif: true },
     { href: `/profile/${username}`, icon: null, label: "Profile", isProfile: true },
@@ -50,8 +49,8 @@ export function MobileNav() {
         >
           SocialApp
         </span>
-        <div className="flex-1 flex justify-end gap-3">
-          <Link href="/notifications" style={{ color: "var(--color-text-primary)" }}>
+        <div className="flex-1 flex justify-end gap-1">
+          <Link href="/notifications" className="touch-target" style={{ color: "var(--color-text-primary)" }}>
             <div className="relative">
               <Heart size={24} strokeWidth={1.75} />
               {unread > 0 && (
@@ -64,16 +63,20 @@ export function MobileNav() {
               )}
             </div>
           </Link>
-          <Link href="/compose" style={{ color: "var(--color-text-primary)" }}>
+          <Link href="/messages" className="touch-target" style={{ color: "var(--color-text-primary)" }}>
             <MessageCircle size={24} strokeWidth={1.75} />
           </Link>
         </div>
       </header>
 
-      {/* Bottom tab bar */}
+      {/* Bottom tab bar — uses safe-area-inset-bottom */}
       <nav
-        className="fixed bottom-0 left-0 right-0 z-50 flex items-center border-t md:hidden"
-        style={{ background: "var(--color-surface)", borderColor: "var(--color-border)", height: 56 }}
+        className="fixed bottom-0 left-0 right-0 z-50 flex items-center border-t md:hidden pb-safe"
+        style={{
+          background: "var(--color-surface)",
+          borderColor: "var(--color-border)",
+          minHeight: 56,
+        }}
       >
         {tabs.map(({ href, icon: Icon, label, isNotif, isProfile }: any) => {
           const active = pathname === href || pathname.startsWith(href + "/");
@@ -82,7 +85,7 @@ export function MobileNav() {
               key={href}
               href={href}
               title={label}
-              className="flex flex-1 flex-col items-center justify-center h-full relative transition-opacity hover:opacity-70"
+              className="flex flex-1 flex-col items-center justify-center h-14 relative transition-opacity hover:opacity-70"
               style={{ color: "var(--color-text-primary)" }}
             >
               {isProfile ? (

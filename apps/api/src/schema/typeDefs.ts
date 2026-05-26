@@ -244,6 +244,8 @@ export const typeDefs = gql`
   # ─── Mutations ────────────────────────────────────────────────────────────
 
   type Mutation {
+    # Profile
+    updateProfile(input: UpdateProfileInput!): User!
     # Posts
     createPost(input: CreatePostInput!): Post!
     updatePost(id: ID!, input: UpdatePostInput!): Post!
@@ -298,6 +300,12 @@ export const typeDefs = gql`
   }
 
   # ─── Inputs ───────────────────────────────────────────────────────────────
+
+  input UpdateProfileInput {
+    displayName: String
+    bio: String
+    avatarUrl: String
+  }
 
   input CreatePostInput {
     content: String!

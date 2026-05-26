@@ -21,12 +21,13 @@ function relativeTime(dateStr: string) {
   return `${Math.floor(h / 24)}d ago`;
 }
 
-const STORY_DURATION = 5000; // ms for images
+const STORY_DURATION = 5000;
 
 export function StoryViewer({ groups, initialGroupIndex, onClose }: StoryViewerProps) {
   const [groupIdx, setGroupIdx] = useState(initialGroupIndex);
   const [storyIdx, setStoryIdx] = useState(0);
-  const [progress, setProgress] = useState(0); // 0-100
+  const [progress, setProgress] = useState(0);
+  const [closing, setClosing] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startRef = useRef(Date.now());
 
@@ -34,6 +35,11 @@ export function StoryViewer({ groups, initialGroupIndex, onClose }: StoryViewerP
 
   const currentGroup = groups[groupIdx];
   const currentStory = currentGroup?.stories[storyIdx];
+
+  const handleClose = useCallback(() => {
+    setClosing(true);
+    setTimeout(onClose, 150);
+  }, [onClose]);
 
   const goNext = useCallback(() => {
     if (!currentGroup) return;
@@ -45,9 +51,9 @@ export function StoryViewer({ groups, initialGroupIndex, onClose }: StoryViewerP
       setStoryIdx(0);
       setProgress(0);
     } else {
-      onClose();
+      handleClose();
     }
-  }, [groupIdx, groups.length, storyIdx, currentGroup, onClose]);
+  }, [groupIdx, groups.length, storyIdx, currentGroup, handleClose]);
 
   const goPrev = useCallback(() => {
     if (storyIdx > 0) {
@@ -66,40 +72,47 @@ export function StoryViewer({ groups, initialGroupIndex, onClose }: StoryViewerP
     if (!currentStory) return;
     setProgress(0);
     startRef.current = Date.now();
-    const duration = STORY_DURATION;
     timerRef.current = setInterval(() => {
       const elapsed = Date.now() - startRef.current;
-      const pct = Math.min((elapsed / duration) * 100, 100);
+      const pct = Math.min((elapsed / STORY_DURATION) * 100, 100);
       setProgress(pct);
       if (pct >= 100) {
         clearInterval(timerRef.current!);
         goNext();
       }
     }, 50);
-    // Fire view mutation
     viewStory({ variables: { id: currentStory.id } }).catch(() => {});
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [currentStory?.id, goNext]);
+  }, [currentStory?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Keyboard navigation
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") handleClose();
       if (e.key === "ArrowRight") goNext();
       if (e.key === "ArrowLeft") goPrev();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [onClose, goNext, goPrev]);
+  }, [handleClose, goNext, goPrev]);
 
   if (!currentGroup || !currentStory) return null;
 
   return (
     <div
       className="fixed inset-0 z-[100] flex items-center justify-center"
-      style={{ background: "var(--color-surface-overlay)" }}
+      style={{ background: "rgba(0,0,0,0.85)" }}
     >
-      <div className="relative w-full max-w-sm h-full md:h-[85vh] md:rounded-2xl overflow-hidden" style={{ background: "#000" }}>
+      {/* Backdrop close */}
+      <div className="absolute inset-0" onClick={handleClose} />
+
+      {/* Story panel */}
+      <div
+        className={`relative w-full max-w-sm md:h-[85vh] md:rounded-2xl overflow-hidden ${
+          closing ? "animate-story-close" : "animate-story-open"
+        }`}
+        style={{ background: "#000", height: "100dvh" }}
+      >
         {/* Media */}
         <div className="absolute inset-0">
           <Image
@@ -111,18 +124,24 @@ export function StoryViewer({ groups, initialGroupIndex, onClose }: StoryViewerP
           />
         </div>
 
-        {/* Gradient overlay top */}
+        {/* Top gradient */}
         <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/30 pointer-events-none" />
 
         {/* Progress bars */}
         <div className="absolute top-3 left-3 right-3 flex gap-1 z-10">
           {currentGroup.stories.map((_: any, i: number) => (
-            <div key={i} className="flex-1 h-0.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.4)" }}>
+            <div
+              key={i}
+              className="flex-1 h-0.5 rounded-full overflow-hidden"
+              style={{ background: "rgba(255,255,255,0.35)" }}
+            >
               <div
-                className="h-full rounded-full"
+                className="h-full rounded-full bg-white"
                 style={{
-                  background: "#fff",
-                  width: i < storyIdx ? "100%" : i === storyIdx ? `${progress}%` : "0%",
+                  width:
+                    i < storyIdx ? "100%"
+                    : i === storyIdx ? `${progress}%`
+                    : "0%",
                   transition: i === storyIdx ? "none" : undefined,
                 }}
               />
@@ -130,18 +149,15 @@ export function StoryViewer({ groups, initialGroupIndex, onClose }: StoryViewerP
           ))}
         </div>
 
-        {/* Author info */}
+        {/* Author row */}
         <div className="absolute top-8 left-3 right-12 z-10 flex items-center gap-2">
           <Avatar src={currentGroup.user.avatarUrl} alt={currentGroup.user.displayName} size={32} />
-          <span className="text-white text-sm font-semibold">{currentGroup.user.username}</span>
+          <span className="text-white text-sm font-semibold drop-shadow">{currentGroup.user.username}</span>
           <span className="text-white/70 text-xs">{relativeTime(currentStory.createdAt)}</span>
         </div>
 
         {/* Close button */}
-        <button
-          onClick={onClose}
-          className="absolute top-8 right-3 z-10 text-white p-1"
-        >
+        <button onClick={handleClose} className="absolute top-8 right-3 z-10 text-white p-1">
           <X size={24} />
         </button>
 
@@ -152,7 +168,7 @@ export function StoryViewer({ groups, initialGroupIndex, onClose }: StoryViewerP
           </div>
         )}
 
-        {/* Click zones — left half / right half */}
+        {/* Tap zones */}
         <div className="absolute inset-0 flex z-20">
           <div className="flex-1" onClick={goPrev} />
           <div className="flex-1" onClick={goNext} />

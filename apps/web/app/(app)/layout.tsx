@@ -1,6 +1,7 @@
 import { Sidebar, SidebarCompact } from "@/components/layout/Sidebar";
 import { MobileNav } from "@/components/layout/MobileNav";
 import { RightSidebar } from "@/components/layout/RightSidebar";
+import { PageTransition } from "@/components/ui/PageTransition";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -18,15 +19,20 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
       {/* ── Center column ── */}
       <main
-        className="flex-1 min-w-0 pb-16 md:pb-0"
+        className="flex-1 min-w-0"
         style={{ borderRight: "1px solid var(--color-border)" }}
       >
         {/* Spacer for mobile top header */}
         <div className="h-14 md:hidden" />
 
         <div className="mx-auto" style={{ maxWidth: 630 }}>
-          {children}
+          <PageTransition>
+            {children}
+          </PageTransition>
         </div>
+
+        {/* Spacer for mobile bottom nav */}
+        <div className="h-16 pb-safe md:hidden" />
       </main>
 
       {/* ── Right sidebar (≥1280px only) ── */}
