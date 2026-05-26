@@ -91,10 +91,10 @@ async function main() {
   );
 
   // ── 8. Start ─────────────────────────────────────────────────────────────
-  httpServer.listen(port, () => {
-    console.log(`🚀 GraphQL ready  → http://localhost:${port}/graphql`);
-    console.log(`📡 WebSocket ready → ws://localhost:${port}/graphql`);
-    console.log(`❤️  Health check   → http://localhost:${port}/health`);
+  httpServer.listen(Number(port), '0.0.0.0', () => {
+    console.log(`🚀 GraphQL ready  → http://0.0.0.0:${port}/graphql`);
+    console.log(`📡 WebSocket ready → ws://0.0.0.0:${port}/graphql`);
+    console.log(`❤️  Health check   → http://0.0.0.0:${port}/health`);
   });
 }
 
