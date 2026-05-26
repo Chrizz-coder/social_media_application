@@ -67,3 +67,36 @@ export const MARK_NOTIFICATIONS_READ = gql`
     markNotificationsRead
   }
 `;
+
+export const CREATE_STORY = gql`
+  mutation CreateStory($input: CreateStoryInput!) {
+    createStory(input: $input) {
+      id mediaUrl mediaType caption viewerCount hasViewedByMe expiresAt createdAt
+      author { id username displayName avatarUrl }
+    }
+  }
+`;
+
+export const VIEW_STORY = gql`
+  mutation ViewStory($id: ID!) {
+    viewStory(id: $id)
+  }
+`;
+
+export const DELETE_STORY = gql`
+  mutation DeleteStory($id: ID!) {
+    deleteStory(id: $id)
+  }
+`;
+
+export const BOOKMARK_POST = gql`
+  mutation BookmarkPost($postId: ID!) {
+    bookmarkPost(postId: $postId)
+  }
+`;
+
+export const UNBOOKMARK_POST = gql`
+  mutation UnbookmarkPost($postId: ID!) {
+    unbookmarkPost(postId: $postId)
+  }
+`;

@@ -2,9 +2,10 @@
 
 import { useSession } from "next-auth/react";
 import { PostFeed } from "@/components/post/PostFeed";
+import { StoryBar } from "@/components/stories/StoryBar";
 import { GET_FEED, GET_POSTS } from "@/lib/gql/queries";
 import { Loader2 } from "lucide-react";
-import type { Metadata } from "next";
+
 
 export default function FeedPage() {
   const { data: session, status } = useSession();
@@ -26,7 +27,10 @@ export default function FeedPage() {
         <h1 className="text-lg font-bold">Home</h1>
       </header>
 
-      {/* Feed — shows followed users' posts, falls back gracefully */}
+      {/* Stories */}
+      <StoryBar />
+
+      {/* Feed */}
       <PostFeed
         query={viewer ? GET_FEED : GET_POSTS}
         viewerId={viewer?.id ?? viewer?._id}

@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import { Avatar } from "@/components/common/Avatar";
 import { VerifiedBadge } from "@/components/ui/VerifiedBadge";
 import { ParsedContent } from "@/components/ui/HashtagLink";
-import { LIKE_POST, UNLIKE_POST, DELETE_POST } from "@/lib/gql/mutations";
+import { LIKE_POST, UNLIKE_POST, DELETE_POST, BOOKMARK_POST, UNBOOKMARK_POST } from "@/lib/gql/mutations";
 
 interface PostCardProps {
   post: {
@@ -56,7 +56,6 @@ export function PostCard({ post, viewerId, onDelete }: PostCardProps) {
   const isOwner = viewerId === post.author.id;
   const [moreOpen, setMoreOpen] = useState(false);
   const [likeAnim, setLikeAnim] = useState(false);
-  const [saved, setSaved] = useState(false);
   const moreRef = useRef<HTMLDivElement>(null);
 
   const [likePost]   = useMutation(LIKE_POST,   { variables: { postId: post.id } });
@@ -69,6 +68,38 @@ export function PostCard({ post, viewerId, onDelete }: PostCardProps) {
     },
     onCompleted: () => onDelete?.(post.id),
   });
+
+  const [bookmarkPost] = useMutation(BOOKMARK_POST, {
+    variables: { postId: post.id },
+    optimisticResponse: { bookmarkPost: true },
+    update(cache) {
+      cache.modify({
+        id: cache.identify({ __typename: "Post", id: post.id }),
+        fields: {
+          bookmarkedByMe: () => true,
+          bookmarkCount: (prev: number) => prev + 1,
+        },
+      });
+    },
+  });
+  const [unbookmarkPost] = useMutation(UNBOOKMARK_POST, {
+    variables: { postId: post.id },
+    optimisticResponse: { unbookmarkPost: true },
+    update(cache) {
+      cache.modify({
+        id: cache.identify({ __typename: "Post", id: post.id }),
+        fields: {
+          bookmarkedByMe: () => false,
+          bookmarkCount: (prev: number) => Math.max(0, prev - 1),
+        },
+      });
+    },
+  });
+
+  const toggleBookmark = () => {
+    if (post.bookmarkedByMe) unbookmarkPost();
+    else bookmarkPost();
+  };
 
   const toggleLike = () => {
     if (post.likedByMe) {
@@ -240,14 +271,14 @@ export function PostCard({ post, viewerId, onDelete }: PostCardProps) {
 
         {/* Bookmark (right-aligned) */}
         <button
-          onClick={() => setSaved((v) => !v)}
+          onClick={toggleBookmark}
           className="transition-opacity hover:opacity-60"
           style={{ color: "var(--color-text-primary)" }}
         >
           <Bookmark
             size={24}
             strokeWidth={1.75}
-            className={cn(saved && "fill-current")}
+            className={cn(post.bookmarkedByMe && "fill-current")}
           />
         </button>
       </div>

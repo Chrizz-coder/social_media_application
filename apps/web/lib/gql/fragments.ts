@@ -22,6 +22,29 @@ export const POST_FRAGMENT = gql`
     likeCount
     commentCount
     likedByMe
+    bookmarkedByMe
+    bookmarkCount
+    hashtags
+    createdAt
+    author {
+      id
+      username
+      displayName
+      avatarUrl
+      isVerified
+    }
+  }
+`;
+
+export const STORY_FRAGMENT = gql`
+  fragment StoryFragment on Story {
+    id
+    mediaUrl
+    mediaType
+    caption
+    viewerCount
+    hasViewedByMe
+    expiresAt
     createdAt
     author {
       id
@@ -29,6 +52,15 @@ export const POST_FRAGMENT = gql`
       displayName
       avatarUrl
     }
+  }
+`;
+
+export const HASHTAG_FRAGMENT = gql`
+  fragment HashtagFragment on Hashtag {
+    id
+    name
+    postCount
+    totalCount
   }
 `;
 

@@ -7,6 +7,7 @@ import { Like } from '../../models/Like';
 import type { Context } from '../../context';
 import type { IUser, IPost, IComment } from '@social/types';
 import { incrementPostViewCount } from './explore';
+import { incrementPostImpressions } from './analytics';
 
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 50;
@@ -46,6 +47,8 @@ export const QueryResolvers = {
   async post(_: unknown, { id }: { id: string }): Promise<IPost | null> {
     // Fire-and-forget view count increment
     incrementPostViewCount(id);
+    // Fire-and-forget analytics impression increment
+    incrementPostImpressions(id);
     return Post.findById(id).lean<IPost>();
   },
 

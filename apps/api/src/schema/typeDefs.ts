@@ -152,6 +152,26 @@ export const typeDefs = gql`
     totalCount: Int!
   }
 
+  # ─── Analytics ────────────────────────────────────────────────────────────
+
+  type DayCount {
+    date: String!
+    count: Int!
+  }
+
+  type PostAnalytics {
+    post: Post!
+    impressions: Int!
+    reach: Int!
+    saves: Int!
+    likeCount: Int!
+    commentCount: Int!
+    engagementRate: Float!
+    reachByDay: [DayCount!]!
+    likesByDay: [DayCount!]!
+    commentsByDay: [DayCount!]!
+  }
+
   # ─── Messaging ────────────────────────────────────────────────────────────
 
   type Conversation {
@@ -216,6 +236,9 @@ export const typeDefs = gql`
     trendingHashtags(limit: Int): [Hashtag!]!
     explore(limit: Int, cursor: String): PostConnection!
     searchHashtags(query: String!, limit: Int): [Hashtag!]!
+
+    # Analytics
+    postAnalytics(postId: ID!): PostAnalytics
   }
 
   # ─── Mutations ────────────────────────────────────────────────────────────

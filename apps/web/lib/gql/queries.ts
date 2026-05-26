@@ -4,6 +4,8 @@ import {
   POST_FRAGMENT,
   COMMENT_FRAGMENT,
   NOTIFICATION_FRAGMENT,
+  STORY_FRAGMENT,
+  HASHTAG_FRAGMENT,
 } from "./fragments";
 
 export const GET_ME = gql`
@@ -117,4 +119,56 @@ export const SEARCH = gql`
   }
   ${USER_FRAGMENT}
   ${POST_FRAGMENT}
+`;
+
+export const GET_STORIES = gql`
+  query GetStories {
+    stories {
+      user { id username displayName avatarUrl }
+      hasUnviewed
+      stories { ...StoryFragment }
+    }
+  }
+  ${STORY_FRAGMENT}
+`;
+
+export const GET_MY_STORY = gql`
+  query GetMyStory {
+    myStory { ...StoryFragment }
+  }
+  ${STORY_FRAGMENT}
+`;
+
+export const GET_BOOKMARKS = gql`
+  query GetBookmarks($limit: Int, $cursor: String) {
+    bookmarks(limit: $limit, cursor: $cursor) {
+      edges { ...PostFragment }
+      pageInfo { hasNextPage endCursor }
+    }
+  }
+  ${POST_FRAGMENT}
+`;
+
+export const GET_EXPLORE = gql`
+  query GetExplore($limit: Int, $cursor: String) {
+    explore(limit: $limit, cursor: $cursor) {
+      edges { ...PostFragment }
+      pageInfo { hasNextPage endCursor }
+    }
+  }
+  ${POST_FRAGMENT}
+`;
+
+export const GET_HASHTAG = gql`
+  query GetHashtag($name: String!) {
+    hashtag(name: $name) { ...HashtagFragment }
+  }
+  ${HASHTAG_FRAGMENT}
+`;
+
+export const GET_TRENDING_HASHTAGS = gql`
+  query GetTrendingHashtags($limit: Int) {
+    trendingHashtags(limit: $limit) { ...HashtagFragment }
+  }
+  ${HASHTAG_FRAGMENT}
 `;

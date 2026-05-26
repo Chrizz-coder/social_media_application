@@ -20,6 +20,9 @@ import { HashtagQueries, HashtagResolvers } from './resolvers/hashtag';
 import { BookmarkQueries, BookmarkMutations, BookmarkPostFieldResolvers } from './resolvers/bookmark';
 import { ExploreQueries } from './resolvers/explore';
 import { AdminMutations } from './resolvers/admin';
+import { DMQueries, DMMutations, MessageResolvers, ConversationResolvers } from './resolvers/dm';
+import { ReelQueries, ReelMutations, ReelFieldResolvers } from './resolvers/reel';
+import { AnalyticsQueries, PostAnalyticsResolvers } from './resolvers/analytics';
 import { pubsub, EVENTS } from '../pubsub';
 
 /** Custom Date scalar — serialises as ISO string. */
@@ -51,6 +54,9 @@ const resolvers = {
     ...HashtagQueries,
     ...BookmarkQueries,
     ...ExploreQueries,
+    ...DMQueries,
+    ...ReelQueries,
+    ...AnalyticsQueries,
   },
 
   Mutation: {
@@ -61,6 +67,8 @@ const resolvers = {
     ...StoryMutations,
     ...BookmarkMutations,
     ...AdminMutations,
+    ...DMMutations,
+    ...ReelMutations,
   },
 
   Subscription: {
@@ -77,13 +85,17 @@ const resolvers = {
     },
   },
 
-  User:         UserResolvers,
-  Post:         { ...PostResolvers, ...BookmarkPostFieldResolvers },
-  Comment:      CommentResolvers,
-  Notification: NotificationResolvers,
-  Story:        StoryResolvers,
-  StoryGroup:   StoryGroupResolvers,
-  Hashtag:      HashtagResolvers,
+  User:           UserResolvers,
+  Post:           { ...PostResolvers, ...BookmarkPostFieldResolvers },
+  Comment:        CommentResolvers,
+  Notification:   NotificationResolvers,
+  Story:          StoryResolvers,
+  StoryGroup:     StoryGroupResolvers,
+  Hashtag:        HashtagResolvers,
+  Message:        MessageResolvers,
+  Conversation:   ConversationResolvers,
+  Reel:           ReelFieldResolvers,
+  PostAnalytics:  PostAnalyticsResolvers,
 };
 
 export const schema = makeExecutableSchema({ typeDefs, resolvers });
