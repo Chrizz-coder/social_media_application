@@ -6,8 +6,16 @@ import { connectDB, getMongoClient } from "@/lib/db";
 import { User } from "@/lib/models/User";
 import { authConfig } from "./auth.config";
 
-// The adapter needs a MongoClient promise
-const clientPromise = getMongoClient();
+// Lazy promise — DB connection is only initiated on first request, not during next build.
+let _clientPromise: ReturnType<typeof getMongoClient> | null = null;
+function lazyClient(): ReturnType<typeof getMongoClient> {
+  if (!_clientPromise) _clientPromise = getMongoClient();
+  return _clientPromise;
+}
+// MongoDBAdapter accepts a PromiseLike — wrap our lazy factory in a thenable.
+const clientPromise: Promise<Awaited<ReturnType<typeof getMongoClient>>> =
+  { then: (...args: any[]) => lazyClient().then(...args) } as any;
+
 
 export const {
   handlers: { GET, POST },

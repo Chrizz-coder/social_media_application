@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Geist } from "next/font/google";
 import { cn } from "@/lib/utils";
@@ -9,10 +9,13 @@ import jwt from "jsonwebtoken";
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-geist" });
 
+export const viewport: Viewport = {
+  themeColor: "#0a0914",
+};
+
 export const metadata: Metadata = {
   title: { default: "Social", template: "%s · Social" },
   description: "A production-grade open-source social network.",
-  themeColor: "#0a0914",
 };
 
 export default async function RootLayout({
