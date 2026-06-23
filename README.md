@@ -14,6 +14,10 @@
   <img src="https://img.shields.io/badge/Turborepo-monorepo-EF4444?style=for-the-badge&logo=turborepo&logoColor=white" alt="Turborepo" />
 </p>
 
+<br />
+
+![App Preview](.github/assets/preview.png)
+
 </div>
 
 ---
