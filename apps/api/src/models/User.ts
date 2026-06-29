@@ -19,6 +19,6 @@ const UserSchema = new Schema(
 );
 
 // Text index for search
-UserSchema.index({ username: 'text', displayName: 'text' });
+UserSchema.index({ username: 'text', displayName: 'text' }); // for easy searching , text used for suffix,case insensitive,diacritic,scoring
 
 export const User = mongoose.model('User', UserSchema);
