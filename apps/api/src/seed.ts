@@ -9,6 +9,8 @@ import { Comment } from './models/Comment';
 import { Story } from './models/Story';
 import { Reel } from './models/Reel';
 import { Hashtag } from './models/Hashtag';
+import { upsertUserNode } from './services/neo4jUserService';
+import { getDriver } from '@social/neo4j';
 
 async function seed() {
   try {
@@ -28,6 +30,24 @@ async function seed() {
       { email: 'bob@example.com', username: 'bob', displayName: 'Bob' },
       { email: 'charlie@example.com', username: 'charlie', displayName: 'Charlie' }
     ]);
+
+    // ── Sync users into Neo4j ────────────────────────────────────────────────
+    // Development only — mirrors MongoDB users into the Neo4j social graph.
+    // Wrapped in try/catch so seed succeeds even if Neo4j is unavailable.
+    try {
+      console.log('Syncing users to Neo4j...');
+      await Promise.all(
+        users.map((u) =>
+          upsertUserNode(
+            (u._id as { toString(): string }).toString(),
+            u.username
+          )
+        )
+      );
+      console.log('Neo4j sync completed.');
+    } catch (neo4jErr) {
+      console.warn('Neo4j sync failed (non-fatal):', neo4jErr);
+    }
     
     console.log('Creating posts...');
     const posts = await Post.create([
@@ -97,6 +117,8 @@ async function seed() {
   } catch (error) {
     console.error('Seed failed:', error);
   } finally {
+    // Close Neo4j driver before disconnecting mongoose.
+    try { await getDriver().close(); } catch { /* already warned above */ }
     await mongoose.disconnect();
     process.exit(0);
   }

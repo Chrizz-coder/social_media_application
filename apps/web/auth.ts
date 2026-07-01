@@ -5,6 +5,7 @@ import { MongoDBAdapter } from "@auth/mongodb-adapter";
 import { connectDB, getMongoClient } from "@/lib/db";
 import { User } from "@/lib/models/User";
 import { authConfig } from "./auth.config";
+import { upsertUserNode } from "@/lib/neo4jUserService";
 
 // Lazy promise — DB connection is only initiated on first request, not during next build.
 let _clientPromise: ReturnType<typeof getMongoClient> | null = null;
@@ -63,6 +64,13 @@ export const {
         );
 
         token.sub = (dbUser._id as { toString(): string }).toString();
+        token.email = email; // include email in JWT payload
+
+        // Fire-and-forget — Neo4j sync must never block or delay authentication.
+        // If Neo4j is unavailable, the error is logged and login proceeds normally.
+        upsertUserNode(token.sub, dbUser.username).catch((err) =>
+          console.error('[auth] Neo4j sync failed (non-fatal):', err)
+        );
       }
       return token;
     },

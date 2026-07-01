@@ -8,7 +8,7 @@ import type { IUser, INotification } from "@social/types";
 import {
   createFollowRelation,
   deleteFollowRelation,
-} from "../../services/followService";
+} from "../../services/neo4jFollowService";
 
 function requireAuth(ctx: Context) {
   if (!ctx.viewer) {

@@ -48,7 +48,7 @@ export async function resolveViewerFromToken(
       return { viewer: null };
     }
 
-    const decoded = jwt.verify(token, secret) as { userId: string };
+    const decoded = jwt.verify(token, secret) as { userId: string; email?: string };
 
     const user = await User.findById(decoded.userId).lean<IUser>();
     if (!user) return { viewer: null };

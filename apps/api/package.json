@@ -13,6 +13,7 @@
   "dependencies": {
     "@apollo/server": "^4.13.0",
     "@graphql-tools/schema": "^10.0.32",
+    "@social/neo4j": "workspace:*",
     "cors": "^2.8.6",
     "dataloader": "^2.2.3",
     "dotenv": "^17.4.0",

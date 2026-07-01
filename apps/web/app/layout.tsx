@@ -27,8 +27,13 @@ export default async function RootLayout({
   // This runs server-side on every request, so the token is always fresh.
   let apiToken: string | null = null;
   const userId = (session?.user as any)?._id as string | undefined;
+  const email  = session?.user?.email ?? undefined;
   if (userId && process.env.JWT_SECRET) {
-    apiToken = jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: "1h" });
+    apiToken = jwt.sign(
+      { userId, ...(email && { email }) },
+      process.env.JWT_SECRET,
+      { expiresIn: "1h" }
+    );
   }
 
   return (

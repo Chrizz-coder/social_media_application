@@ -4,3 +4,9 @@ node_modules
 dist
 .env
 .env.*.local
+
+# Neo4j local data (bind mount — never commit runtime database files)
+# The directory structure (.gitkeep files) is tracked so the folders exist
+# after a fresh clone, preventing Docker from creating them as root.
+neo4j-data/**/*
+!neo4j-data/**/.gitkeep
