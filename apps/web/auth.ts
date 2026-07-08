@@ -1,32 +1,32 @@
 import NextAuth from "next-auth";
 import GitHub from "next-auth/providers/github";
 import Google from "next-auth/providers/google";
-import { MongoDBAdapter } from "@auth/mongodb-adapter";
-import { connectDB, getMongoClient } from "@/lib/db";
+import { connectDB } from "@/lib/db";
 import { User } from "@/lib/models/User";
 import { authConfig } from "./auth.config";
 import { upsertUserNode } from "@/lib/neo4jUserService";
 
-// Lazy promise — DB connection is only initiated on first request, not during next build.
-let _clientPromise: ReturnType<typeof getMongoClient> | null = null;
-function lazyClient(): ReturnType<typeof getMongoClient> {
-  if (!_clientPromise) _clientPromise = getMongoClient();
-  return _clientPromise;
-}
-// MongoDBAdapter accepts a PromiseLike — wrap our lazy factory in a thenable.
-const clientPromise: Promise<Awaited<ReturnType<typeof getMongoClient>>> =
-  { then: (...args: any[]) => lazyClient().then(...args) } as any;
-
-
+/**
+ * Auth.js v5 configuration — NO MongoDBAdapter.
+ *
+ * Why no adapter?
+ * - Session strategy is JWT (auth.config.ts). No database sessions are needed.
+ * - The adapter's only role here was calling createUser() on first OAuth login,
+ *   inserting { email, name, image } into the `users` collection without a
+ *   `username` field. This violated the Mongoose unique index on `username`
+ *   for every second user, causing E11000 before the jwt callback could run.
+ * - The jwt callback already performs a correct findOneAndUpdate upsert with
+ *   all required fields. No adapter is needed.
+ * - OAuth account linking across providers is handled by email as the identity
+ *   key in the jwt callback upsert.
+ */
 export const {
   handlers: { GET, POST },
   auth,
   signIn,
   signOut,
 } = NextAuth({
-  ...authConfig, // spread the edge-compatible base config
-
-  adapter: MongoDBAdapter(clientPromise),
+  ...authConfig,
 
   providers: [
     GitHub({
@@ -39,37 +39,42 @@ export const {
     }),
   ],
 
-  // Override callbacks with the full server-side logic
   callbacks: {
     async jwt({ token, user, profile }) {
-      // `user` is only present on the very first sign-in
-      if (user) {
+      // `user` is present on every sign-in event (OAuth flow).
+      // On session reads (no sign-in), `user` is absent — skip DB work.
+      if (user?.email) {
         await connectDB();
 
-        const email = user.email!;
+        const email = user.email;
         const baseUsername = email.split("@")[0];
         const displayName =
           (profile as { name?: string } | undefined)?.name ||
           user.name ||
           baseUsername;
 
-        // Upsert: set username only on first insert, always update displayName
+        // Upsert the application user. The aggregation pipeline update uses
+        // $ifNull so that an existing username is never overwritten — only
+        // missing/null usernames are back-filled from the email prefix.
         const dbUser = await User.findOneAndUpdate(
           { email },
-          {
-            $setOnInsert: { username: baseUsername },
-            $set: { displayName },
-          },
-          { new: true, upsert: true }
+          [
+            {
+              $set: {
+                displayName,
+                username: { $ifNull: ["$username", baseUsername] },
+              },
+            },
+          ],
+          { new: true, upsert: true, updatePipeline: true }
         );
 
-        token.sub = (dbUser._id as { toString(): string }).toString();
-        token.email = email; // include email in JWT payload
+        token.sub   = (dbUser._id as { toString(): string }).toString();
+        token.email = email;
 
-        // Fire-and-forget — Neo4j sync must never block or delay authentication.
-        // If Neo4j is unavailable, the error is logged and login proceeds normally.
+        // Fire-and-forget Neo4j sync — must never block or fail authentication.
         upsertUserNode(token.sub, dbUser.username).catch((err) =>
-          console.error('[auth] Neo4j sync failed (non-fatal):', err)
+          console.error("[auth] Neo4j sync failed (non-fatal):", err)
         );
       }
       return token;

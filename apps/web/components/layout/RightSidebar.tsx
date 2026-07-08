@@ -3,27 +3,35 @@
 import Link from "next/link";
 import { Avatar } from "@/components/common/Avatar";
 import { useSession } from "next-auth/react";
-
-const SUGGESTED_USERS = [
-  { username: "alex_design", name: "Alex Design", image: null },
-  { username: "photo.by.maya", name: "Maya Chen", image: null },
-  { username: "codewithjohn", name: "John Dev", image: null },
-  { username: "travelgram_k", name: "Kira Travels", image: null },
-  { username: "urbanshots", name: "Urban Shots", image: null },
-];
-
-const TRENDING = [
-  { tag: "webdev",       count: "14.2K posts" },
-  { tag: "photography",  count: "98.5K posts" },
-  { tag: "design",       count: "62.1K posts" },
-  { tag: "javascript",   count: "45.8K posts" },
-  { tag: "react",        count: "38.3K posts" },
-];
+import { useQuery } from "@apollo/client/react";
+import { GET_SUGGESTED_USERS, GET_TRENDING_HASHTAGS } from "@/lib/gql/queries";
+import { FollowButton } from "@/components/user/FollowButton";
+import { Loader2 } from "lucide-react";
 
 export function RightSidebar() {
   const { data: session } = useSession();
   const user = session?.user as any;
-  const username = user?.username ?? user?.name ?? "You";
+
+  // Query suggested users only if authenticated
+  const {
+    data: suggestedData,
+    loading: loadingSuggestions,
+    error: errorSuggestions,
+  } = useQuery<any>(GET_SUGGESTED_USERS, {
+    variables: { limit: 5 },
+    skip: !session,
+  });
+
+  const {
+    data: trendingData,
+    loading: loadingTrending,
+    error: errorTrending,
+  } = useQuery<any>(GET_TRENDING_HASHTAGS, {
+    variables: { limit: 5 },
+  });
+
+  const suggestions: any[] = suggestedData?.suggestedUsers ?? [];
+  const trending: any[] = trendingData?.trendingHashtags ?? [];
 
   return (
     <aside className="sticky top-0 h-screen overflow-y-auto py-8 px-4" style={{ width: 320 }}>
@@ -50,46 +58,67 @@ export function RightSidebar() {
       )}
 
       {/* Suggested for you */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-4">
-          <span className="text-sm font-semibold" style={{ color: "var(--color-text-secondary)" }}>
-            Suggested for you
-          </span>
-          <Link
-            href="/search"
-            className="text-xs font-semibold hover:opacity-70 transition-opacity"
-            style={{ color: "var(--color-text-primary)" }}
-          >
-            See All
-          </Link>
-        </div>
+      {session && (
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <span className="text-sm font-semibold" style={{ color: "var(--color-text-secondary)" }}>
+              Suggested for you
+            </span>
+            <Link
+              href="/search"
+              className="text-xs font-semibold hover:opacity-70 transition-opacity"
+              style={{ color: "var(--color-text-primary)" }}
+            >
+              See All
+            </Link>
+          </div>
 
-        <div className="flex flex-col gap-3">
-          {SUGGESTED_USERS.map((u) => (
-            <div key={u.username} className="flex items-center gap-3">
-              <Avatar src={u.image} alt={u.name} size={32} />
-              <div className="min-w-0 flex-1">
-                <Link
-                  href={`/profile/${u.username}`}
-                  className="text-sm font-semibold block truncate hover:opacity-70 transition-opacity"
-                  style={{ color: "var(--color-text-primary)" }}
-                >
-                  {u.username}
-                </Link>
-                <p className="text-xs truncate" style={{ color: "var(--color-text-secondary)" }}>
-                  {u.name}
-                </p>
-              </div>
-              <button
-                className="text-xs font-semibold hover:opacity-70 transition-opacity shrink-0"
-                style={{ color: "var(--color-interactive)" }}
-              >
-                Follow
-              </button>
+          {loadingSuggestions && (
+            <div className="flex justify-center py-4">
+              <Loader2 size={18} className="animate-spin text-muted-foreground" />
             </div>
-          ))}
+          )}
+
+          {errorSuggestions && (
+            <p className="text-xs text-muted-foreground py-2 text-center">
+              Failed to load suggestions.
+            </p>
+          )}
+
+          {!loadingSuggestions && !errorSuggestions && suggestions.length > 0 && (
+            <div className="flex flex-col gap-3">
+              {suggestions.map((u) => (
+                <div key={u.id} className="flex items-center gap-3">
+                  <Avatar src={u.avatarUrl} alt={u.displayName} size={32} />
+                  <div className="min-w-0 flex-1">
+                    <Link
+                      href={`/profile/${u.username}`}
+                      className="text-sm font-semibold block truncate hover:opacity-70 transition-opacity"
+                      style={{ color: "var(--color-text-primary)" }}
+                    >
+                      {u.username}
+                    </Link>
+                    <p className="text-xs truncate" style={{ color: "var(--color-text-secondary)" }}>
+                      {u.displayName}
+                    </p>
+                  </div>
+                  <FollowButton
+                    username={u.username}
+                    isFollowing={u.isFollowedByMe}
+                    className="text-xs px-3 py-1 rounded-lg"
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+
+          {!loadingSuggestions && !errorSuggestions && suggestions.length === 0 && (
+            <p className="text-xs text-muted-foreground py-2 text-center">
+              No suggestions available.
+            </p>
+          )}
         </div>
-      </div>
+      )}
 
       {/* Trending hashtags */}
       <div>
@@ -98,22 +127,43 @@ export function RightSidebar() {
             Trending
           </span>
         </div>
-        <div className="flex flex-col gap-3">
-          {TRENDING.map(({ tag, count }) => (
-            <Link
-              key={tag}
-              href={`/hashtag/${tag}`}
-              className="flex items-center justify-between hover:opacity-70 transition-opacity"
-            >
-              <span className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>
-                #{tag}
-              </span>
-              <span className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
-                {count}
-              </span>
-            </Link>
-          ))}
-        </div>
+
+        {loadingTrending && (
+          <div className="flex justify-center py-4">
+            <Loader2 size={18} className="animate-spin text-muted-foreground" />
+          </div>
+        )}
+
+        {errorTrending && (
+          <p className="text-xs text-muted-foreground py-2 text-center">
+            Failed to load trending tags.
+          </p>
+        )}
+
+        {!loadingTrending && !errorTrending && trending.length > 0 && (
+          <div className="flex flex-col gap-3">
+            {trending.map((h) => (
+              <Link
+                key={h.id}
+                href={`/hashtag/${h.name}`}
+                className="flex items-center justify-between hover:opacity-70 transition-opacity"
+              >
+                <span className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>
+                  #{h.name}
+                </span>
+                <span className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
+                  {h.totalCount} posts
+                </span>
+              </Link>
+            ))}
+          </div>
+        )}
+
+        {!loadingTrending && !errorTrending && trending.length === 0 && (
+          <p className="text-xs text-muted-foreground py-2 text-center">
+            No trending hashtags yet.
+          </p>
+        )}
       </div>
 
       {/* Footer links */}

@@ -18,6 +18,12 @@ services:
         generateValue: true  # Render auto-generates a secure random value
       - key: PORT
         value: "4000"
+      - key: NEO4J_URI
+        sync: false          # set in Render dashboard (e.g. neo4j+s://xxx.databases.neo4j.io)
+      - key: NEO4J_USERNAME
+        sync: false
+      - key: NEO4J_PASSWORD
+        sync: false
 
   # ── Next.js Web App ────────────────────────────────────────────────────────
   - type: web

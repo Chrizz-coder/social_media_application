@@ -1,5 +1,5 @@
-import dotenv from 'dotenv';
-dotenv.config();
+// Environment variables are loaded by --env-file in the seed script.
+
 
 import mongoose from 'mongoose';
 import { connectDB } from './db';
@@ -10,7 +10,7 @@ import { Story } from './models/Story';
 import { Reel } from './models/Reel';
 import { Hashtag } from './models/Hashtag';
 import { upsertUserNode } from './services/neo4jUserService';
-import { getDriver } from '@social/neo4j';
+import { getDriver } from './neo4j';
 
 async function seed() {
   try {

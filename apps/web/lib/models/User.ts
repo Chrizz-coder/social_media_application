@@ -4,7 +4,7 @@ import type { IUser } from "@social/types";
 const UserSchema = new Schema<IUser>(
   {
     email: { type: String, required: true, unique: true },
-    username: { type: String, required: true, unique: true },
+    username: { type: String, unique: true, sparse: true },
     displayName: { type: String, required: true },
     bio: { type: String },
     avatarUrl: { type: String },

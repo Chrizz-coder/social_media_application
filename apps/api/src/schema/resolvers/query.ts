@@ -133,4 +133,26 @@ export const QueryResolvers = {
       },
     };
   },
+
+  async suggestedUsers(
+    _: unknown,
+    { limit }: { limit?: number | null },
+    ctx: Context
+  ): Promise<IUser[]> {
+    const take = Math.min(limit ?? 5, 20);
+
+    let excludeUserIds: any[] = [];
+    if (ctx.viewer) {
+      excludeUserIds.push(ctx.viewer._id);
+      const follows = await Follow.find({ follower: ctx.viewer._id }).lean();
+      excludeUserIds.push(...follows.map((f) => f.following));
+    }
+
+    const filter = excludeUserIds.length > 0 ? { _id: { $nin: excludeUserIds } } : {};
+
+    return User.find(filter)
+      .sort({ username: 1 })
+      .limit(take)
+      .lean<IUser[]>();
+  },
 };

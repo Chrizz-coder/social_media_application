@@ -1,4 +1,4 @@
-import { getDriver } from '@social/neo4j';
+import { getDriver } from '../neo4j';
 
 /**
  * Upserts a User node in Neo4j.

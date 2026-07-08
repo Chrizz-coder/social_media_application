@@ -248,3 +248,15 @@ export const GET_POST_ANALYTICS = gql`
     }
   }
 `;
+
+export const GET_SUGGESTED_USERS = gql`
+  query GetSuggestedUsers($limit: Int) {
+    suggestedUsers(limit: $limit) {
+      id
+      username
+      displayName
+      avatarUrl
+      isFollowedByMe
+    }
+  }
+`;

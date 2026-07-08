@@ -213,6 +213,7 @@ export const typeDefs = gql`
     following(username: String!, limit: Int, cursor: String): UserConnection!
     notifications(limit: Int, cursor: String): NotificationConnection!
     search(query: String!, limit: Int): SearchResult!
+    suggestedUsers(limit: Int): [User!]!
 
     # Stories
     stories: [StoryGroup!]!

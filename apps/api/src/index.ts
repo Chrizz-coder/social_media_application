@@ -1,5 +1,6 @@
-import dotenv from 'dotenv';
-dotenv.config();
+// Environment variables are loaded by --env-file in the dev/start scripts
+// before any module is evaluated — no dotenv import needed here.
+
 
 import { createServer } from 'http';
 import express from 'express';

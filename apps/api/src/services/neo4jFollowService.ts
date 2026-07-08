@@ -1,4 +1,4 @@
-import { getDriver } from '@social/neo4j';
+import { getDriver } from '../neo4j';
 
 /**
  * Creates a FOLLOWS relationship between two User nodes in Neo4j.
