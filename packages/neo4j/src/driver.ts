@@ -1,13 +1,6 @@
 import neo4j, { Driver } from 'neo4j-driver';
 
-/**
- * Lazy Neo4j driver singleton.
- *
- * - Created on the first call to getDriver().
- * - Reused on every subsequent call — never one driver per request.
- * - Sessions must be created per-operation and closed inside finally blocks.
- * - Call getDriver().close() only during application shutdown or seed scripts.
- */
+
 let _driver: Driver | null = null;
 
 export function getDriver(): Driver {
@@ -29,7 +22,6 @@ export function getDriver(): Driver {
 
   _driver = neo4j.driver(URI, neo4j.auth.basic(USER, PASSWORD));
 
-  // Verify once asynchronously — never blocks application startup.
   _driver
     .verifyConnectivity()
     .then(() => console.log('✅ [neo4j] Connection established'))

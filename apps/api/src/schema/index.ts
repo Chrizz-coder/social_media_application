@@ -116,10 +116,8 @@ const resolvers = {
         (_: unknown, { conversationId }: { conversationId: string }) =>
           pubsub.asyncIterator([`NEW_MESSAGE:${conversationId}`]),
         async (payload: any, variables: { conversationId: string }, context: Context) => {
-          // Auth required
           if (!context.viewer) return false;
 
-          // Verify viewer is a participant in the conversation
           const convo = await Conversation.findById(variables.conversationId).lean();
           if (!convo) return false;
 
@@ -135,20 +133,16 @@ const resolvers = {
       subscribe: withFilter(
         () => pubsub.asyncIterator([EVENTS.NEW_STORY]),
         async (payload: any, _variables: unknown, context: Context) => {
-          // Auth required
           if (!context.viewer) return false;
 
-          // Only push to viewers who follow the story author
           const storyGroup = payload.newStory;
           if (!storyGroup) return false;
 
           const authorId = String(storyGroup.user);
           const viewerId = String(context.viewer._id);
 
-          // Always show own stories
           if (authorId === viewerId) return true;
 
-          // Check if viewer follows the author
           const followExists = await Follow.exists({
             follower: context.viewer._id,
             following: authorId,

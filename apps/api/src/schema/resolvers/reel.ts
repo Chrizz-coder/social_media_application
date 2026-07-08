@@ -102,7 +102,6 @@ export const ReelQueries = {
   },
 
   async reel(_: unknown, { id }: { id: string }) {
-    // Fire-and-forget view count increment
     Reel.findByIdAndUpdate(id, { $inc: { viewCount: 1 } }).exec().catch(() => {});
     return Reel.findById(id).lean();
   },
@@ -129,7 +128,6 @@ export const ReelMutations = {
       hashtags,
     });
 
-    // Upsert hashtag documents
     if (hashtags.length > 0) {
       upsertHashtags(hashtags, 'reelCount').catch(() => {});
     }
@@ -150,7 +148,6 @@ export const ReelMutations = {
     await Reel.findByIdAndDelete(id);
     await ReelLike.deleteMany({ reel: id });
 
-    // Decrement hashtag counts
     const hashtags = (reel as any).hashtags || [];
     if (hashtags.length > 0) {
       decrementHashtags(hashtags, 'reelCount').catch(() => {});

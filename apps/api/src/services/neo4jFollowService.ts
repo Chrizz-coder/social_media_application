@@ -1,14 +1,6 @@
 import { getDriver } from '../neo4j';
 
-/**
- * Creates a FOLLOWS relationship between two User nodes in Neo4j.
- *
- * Uses MERGE so re-following never creates duplicate edges.
- * Errors are caught and logged — MongoDB is the source of truth.
- * A Neo4j failure must never roll back the MongoDB Follow document.
- *
- * Call this ONLY after the MongoDB Follow document has been successfully written.
- */
+
 export async function createFollowRelation(
   followerId: string,
   followingId: string,
@@ -34,12 +26,7 @@ export async function createFollowRelation(
   }
 }
 
-/**
- * Deletes the FOLLOWS relationship between two User nodes.
- *
- * Uses MATCH + DELETE on the relationship only — nodes are never deleted.
- * MongoDB Follow document deletion is handled separately by the resolver.
- */
+
 export async function deleteFollowRelation(
   followerId: string,
   followingId: string,

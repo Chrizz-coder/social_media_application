@@ -53,12 +53,10 @@ export const {
           user.name ||
           baseUsername;
 
-        // 1. Check if user already exists
         let existingUser = await User.findOne({ email }).lean();
         let targetUsername = baseUsername;
 
         if (!existingUser) {
-          // 2. Generate a unique username if this is a new user
           let isUnique = false;
           let counter = 1;
           while (!isUnique) {
@@ -73,7 +71,6 @@ export const {
           }
         }
 
-        // 3. Upsert the application user. 
         // The aggregation pipeline update uses $ifNull so existing fields are never overwritten.
         // We MUST initialize all non-nullable GraphQL fields here because pipeline updates bypass Mongoose defaults.
         const dbUser = await User.findOneAndUpdate(

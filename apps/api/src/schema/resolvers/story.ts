@@ -36,11 +36,9 @@ export const StoryQueries = {
     const viewer = requireAuth(ctx);
     const viewerId = String(viewer._id);
 
-    // Get users the viewer follows
     const follows = await Follow.find({ follower: viewer._id }).lean();
     const followingIds = follows.map((f) => f.following);
 
-    // Include viewer's own stories + followed users' stories
     const authorIds = [viewer._id, ...followingIds];
     const now = new Date();
 
@@ -51,7 +49,6 @@ export const StoryQueries = {
       .sort({ createdAt: -1 })
       .lean();
 
-    // Group stories by author
     const groupMap = new Map<string, { stories: any[]; hasUnviewed: boolean }>();
 
     for (const story of activeStories) {
@@ -62,14 +59,12 @@ export const StoryQueries = {
       const group = groupMap.get(authorKey)!;
       group.stories.push(story);
 
-      // Check if viewer has NOT viewed this story
       const viewerIds = (story.viewers || []).map((v: any) => String(v.user));
       if (!viewerIds.includes(viewerId)) {
         group.hasUnviewed = true;
       }
     }
 
-    // Build StoryGroup array
     const groups: any[] = [];
     for (const [authorId, group] of groupMap) {
       groups.push({
@@ -79,7 +74,6 @@ export const StoryQueries = {
       });
     }
 
-    // Sort: unviewed first, then by most recent story createdAt
     groups.sort((a, b) => {
       if (a.hasUnviewed !== b.hasUnviewed) return a.hasUnviewed ? -1 : 1;
       const aLatest = a.stories[0]?.createdAt?.getTime?.() ?? 0;
@@ -118,7 +112,6 @@ export const StoryMutations = {
 
     const created = await Story.findById(story._id).lean();
 
-    // Publish for real-time (Phase 3)
     pubsub.publish(EVENTS.NEW_STORY, {
       newStory: { user: viewer._id, stories: [created], hasUnviewed: true },
     });

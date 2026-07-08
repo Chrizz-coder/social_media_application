@@ -30,14 +30,12 @@ export const AnalyticsQueries = {
       });
     }
 
-    // Verify viewer owns the post
     if (String(post.author) !== String(viewer._id)) {
       throw new GraphQLError('You can only view analytics for your own posts.', {
         extensions: { code: 'FORBIDDEN' },
       });
     }
 
-    // Find or create analytics document
     let analytics = await PostAnalytics.findOne({ post: postId }).lean();
     if (!analytics) {
       analytics = await PostAnalytics.create({ post: postId });
@@ -76,7 +74,6 @@ export const PostAnalyticsResolvers = {
   },
 
   async likeCount(parent: any): Promise<number> {
-    // Get live count from the post
     const post = await Post.findById(parent.post).lean<IPost>();
     return post?.likeCount ?? 0;
   },
@@ -119,10 +116,6 @@ export const PostAnalyticsResolvers = {
   },
 };
 
-/**
- * Fire-and-forget impression increment.
- * Call this from the post query resolver to track impressions.
- */
 export function incrementPostImpressions(postId: string): void {
   PostAnalytics.findOneAndUpdate(
     { post: postId },

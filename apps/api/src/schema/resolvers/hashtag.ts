@@ -61,14 +61,12 @@ export const HashtagQueries = {
   async trendingHashtags(_: unknown, { limit }: { limit?: number | null }) {
     const take = Math.min(limit ?? 10, 30);
 
-    // Try cache first
     const cached = await redis.get(TRENDING_CACHE_KEY);
     if (cached) {
       const parsed = JSON.parse(cached);
       return parsed.slice(0, take);
     }
 
-    // Aggregate: sort by total count (postCount + reelCount)
     const hashtags = await Hashtag.aggregate([
       {
         $addFields: {
@@ -79,7 +77,6 @@ export const HashtagQueries = {
       { $limit: 30 }, // cache more than needed
     ]);
 
-    // Cache for 5 minutes
     await redis.set(TRENDING_CACHE_KEY, JSON.stringify(hashtags), 'EX', TRENDING_TTL);
 
     return hashtags.slice(0, take);
@@ -92,7 +89,6 @@ export const HashtagQueries = {
     const take = Math.min(limit ?? 8, 30);
     if (!query.trim()) return [];
 
-    // Escape regex special chars for safety
     const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
     return Hashtag.aggregate([

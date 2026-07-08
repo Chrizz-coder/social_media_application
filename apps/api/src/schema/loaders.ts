@@ -22,13 +22,11 @@ async function batchLoadUsers(ids: readonly string[]): Promise<(IUser | Error)[]
  * Key format: "userId:postId"
  */
 async function batchLoadIsLiked(keys: readonly string[]): Promise<boolean[]> {
-  // keys are "userId:postId"
   const pairs = keys.map((k) => {
     const [userId, postId] = k.split(':');
     return { userId, postId };
   });
 
-  // Get all unique userIds (in practice usually 1 per request)
   const userIds = [...new Set(pairs.map((p) => p.userId))];
   const postIds = pairs.map((p) => p.postId);
 

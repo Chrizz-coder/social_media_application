@@ -21,7 +21,6 @@ export const ExploreQueries = {
   ) {
     const take = clampLimit(limit);
 
-    // Try cache for first page only (no cursor)
     if (!cursor) {
       const cacheKey = `explore:page1:${take}`;
       const cached = await redis.get(cacheKey);
@@ -30,7 +29,6 @@ export const ExploreQueries = {
       }
     }
 
-    // Build exclusion list if viewer is authenticated
     let excludeAuthorIds: string[] = [];
     if (ctx.viewer) {
       const follows = await Follow.find({ follower: ctx.viewer._id }).lean();
@@ -66,7 +64,7 @@ export const ExploreQueries = {
       },
       { $sort: { _score: -1, createdAt: -1 } },
       { $limit: take + 1 },
-      { $project: { _score: 0 } }, // remove computed field
+      { $project: { _score: 0 } },
     ]);
 
     const hasNextPage = docs.length > take;
@@ -80,7 +78,6 @@ export const ExploreQueries = {
       },
     };
 
-    // Cache first page for 2 minutes
     if (!cursor) {
       const cacheKey = `explore:page1:${take}`;
       await redis.set(cacheKey, JSON.stringify(result), 'EX', EXPLORE_CACHE_TTL);

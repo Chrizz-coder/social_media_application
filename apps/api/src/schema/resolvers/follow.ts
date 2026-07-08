@@ -56,11 +56,9 @@ export const FollowMutations = {
       throw e;
     }
 
-    // Atomically update counts
     await User.findByIdAndUpdate(target._id, { $inc: { followerCount: 1 } });
     await User.findByIdAndUpdate(viewer._id, { $inc: { followingCount: 1 } });
 
-    // Create FOLLOW notification
     const notif = await Notification.create({
       recipient: target._id,
       actor: viewer._id,

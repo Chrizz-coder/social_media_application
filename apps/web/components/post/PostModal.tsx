@@ -24,7 +24,6 @@ export function PostModal({ post: initialPost, onClose }: PostModalProps) {
 
   const overlayRef = useRef<HTMLDivElement>(null);
 
-  // Close on Escape
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
     window.addEventListener("keydown", onKey);

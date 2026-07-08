@@ -48,7 +48,6 @@ export const BookmarkQueries = {
     const hasNextPage = bookmarks.length > take;
     const raw = hasNextPage ? bookmarks.slice(0, take) : bookmarks;
 
-    // Fetch posts and filter out archived
     const postIds = raw.map((b) => b.post).filter(Boolean);
     const posts = await Post.find({
       _id: { $in: postIds },

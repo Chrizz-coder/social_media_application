@@ -45,9 +45,7 @@ export const QueryResolvers = {
   },
 
   async post(_: unknown, { id }: { id: string }): Promise<IPost | null> {
-    // Fire-and-forget view count increment
     incrementPostViewCount(id);
-    // Fire-and-forget analytics impression increment
     incrementPostImpressions(id);
     return Post.findById(id).lean<IPost>();
   },
@@ -67,7 +65,6 @@ export const QueryResolvers = {
     ctx: Context
   ) {
     if (!ctx.viewer) {
-      // Unauthenticated: return empty feed
       return { edges: [], pageInfo: { hasNextPage: false, endCursor: null } };
     }
     const follows = await Follow.find({ follower: ctx.viewer._id }).lean();

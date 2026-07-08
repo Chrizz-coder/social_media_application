@@ -22,7 +22,6 @@ export const CommentResolvers = {
 
   async post(parent: IComment): Promise<IPost | null> {
     const postRef = parent.post;
-    // If already populated
     if (typeof postRef === 'object' && postRef !== null && '_id' in (postRef as any)) {
       return postRef as unknown as IPost;
     }

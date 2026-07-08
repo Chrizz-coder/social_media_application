@@ -30,7 +30,6 @@ export function getDriver(): Driver {
 
   _driver = neo4j.driver(URI, neo4j.auth.basic(USER, PASSWORD));
 
-  // Verify connectivity once asynchronously — never blocks startup.
   _driver
     .verifyConnectivity()
     .then(() => console.log('✅ [neo4j] Connection established'))

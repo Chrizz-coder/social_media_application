@@ -190,7 +190,6 @@ export const DMMutations = {
       String(a).localeCompare(String(b))
     );
 
-    // Find existing conversation
     let convo = await Conversation.findOne({
       participants: { $all: participantIds, $size: 2 },
     })
@@ -201,7 +200,6 @@ export const DMMutations = {
       return { ...convo, unreadCount: 0 };
     }
 
-    // Create new conversation
     const newConvo = await Conversation.create({
       participants: participantIds,
     });
@@ -232,7 +230,6 @@ export const DMMutations = {
       readBy: [{ user: viewer._id, readAt: new Date() }],
     });
 
-    // Update conversation's lastMessage and lastMessageAt
     await Conversation.findByIdAndUpdate(data.conversationId, {
       lastMessage: message._id,
       lastMessageAt: new Date(),
@@ -242,7 +239,6 @@ export const DMMutations = {
       .populate('sender')
       .lean();
 
-    // Publish for real-time subscription
     pubsub.publish(`NEW_MESSAGE:${data.conversationId}`, {
       newMessage: populated,
     });

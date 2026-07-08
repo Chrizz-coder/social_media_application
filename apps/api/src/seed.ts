@@ -31,7 +31,6 @@ async function seed() {
       { email: 'charlie@example.com', username: 'charlie', displayName: 'Charlie' }
     ]);
 
-    // ── Sync users into Neo4j ────────────────────────────────────────────────
     // Development only — mirrors MongoDB users into the Neo4j social graph.
     // Wrapped in try/catch so seed succeeds even if Neo4j is unavailable.
     try {
@@ -117,7 +116,6 @@ async function seed() {
   } catch (error) {
     console.error('Seed failed:', error);
   } finally {
-    // Close Neo4j driver before disconnecting mongoose.
     try { await getDriver().close(); } catch { /* already warned above */ }
     await mongoose.disconnect();
     process.exit(0);

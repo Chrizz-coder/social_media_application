@@ -79,15 +79,12 @@ function ChatPanel({ conversationId, viewer, participants }: { conversationId: s
   const messages: any[] = [...((data as any)?.messages?.edges ?? [])].reverse();
   const pageInfo = (data as any)?.messages?.pageInfo;
 
-  // Auto-scroll to bottom
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages.length]);
 
-  // Mark read on open
   useEffect(() => {
     if (conversationId) markRead({ variables: { conversationId } });
   }, [conversationId]);
 
-  // Real-time subscription
   useEffect(() => {
     if (!conversationId) return;
     return subscribeToMore({
@@ -108,7 +105,6 @@ function ChatPanel({ conversationId, viewer, participants }: { conversationId: s
     sendMessage({ variables: { input: { conversationId, content: text.trim() } } });
   };
 
-  // Group by date
   const grouped: { date: string; msgs: any[] }[] = [];
   let lastDate = "";
   for (const m of messages) {

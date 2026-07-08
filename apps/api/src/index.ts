@@ -16,32 +16,26 @@ import { createContext, resolveViewerFromToken } from './context';
 import { createLoaders } from './schema/loaders';
 
 async function main() {
-  // ── 1. Connect to MongoDB ────────────────────────────────────────────────
   await connectDB();
 
-  // ── 2. Express app ───────────────────────────────────────────────────────
   const app = express();
   const port = process.env.PORT || 4000;
 
   app.use(cors<cors.CorsRequest>());
   app.use(express.json());
 
-  // ── 3. Health check ──────────────────────────────────────────────────────
   app.get('/health', (_req, res) => {
     res.json({ status: 'ok' });
   });
 
-  // ── 4. Shared HTTP server (required for WebSocket + Express together) ────
   const httpServer = createServer(app);
 
-  // ── 5. WebSocket server for GraphQL subscriptions ───────────────────────
   const wsServer = new WebSocketServer({ server: httpServer, path: '/graphql' });
 
   const serverCleanup = useServer(
     {
       schema,
       context: async (ctx) => {
-        // Extract token from connectionParams (supports both 'authorization' and 'token')
         const params = ctx.connectionParams as Record<string, unknown> | undefined;
         const rawToken =
           (params?.authorization as string)?.replace?.('Bearer ', '') ||
@@ -55,7 +49,6 @@ async function main() {
     wsServer
   );
 
-  // ── 6. Apollo Server 4 ───────────────────────────────────────────────────
   const apollo = new ApolloServer({
     schema,
     plugins: [
@@ -74,7 +67,6 @@ async function main() {
 
   await apollo.start();
 
-  // ── 7. Mount GraphQL at /graphql ─────────────────────────────────────────
   app.use(
     '/graphql',
     expressMiddleware(apollo, {
@@ -85,7 +77,6 @@ async function main() {
     })
   );
 
-  // ── 8. Start ─────────────────────────────────────────────────────────────
   httpServer.listen(Number(port), '0.0.0.0', () => {
     console.log(`🚀 GraphQL ready  → http://0.0.0.0:${port}/graphql`);
     console.log(`📡 WebSocket ready → ws://0.0.0.0:${port}/graphql`);

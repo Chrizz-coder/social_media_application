@@ -55,19 +55,16 @@ export const MutationResolvers = {
     const viewer = requireAuth(ctx);
     const data = validate(CreatePostInputSchema, input);
 
-    // Extract hashtags from content
     const hashtags = parseHashtags(data.content);
 
     const post = await Post.create({ ...data, author: viewer._id, hashtags });
 
-    // Upsert hashtag documents
     if (hashtags.length > 0) {
       upsertHashtags(hashtags, 'postCount').catch(() => {});
     }
 
     const populated = await Post.findById(post._id).populate('author').lean<IPost>();
 
-    // Publish to live-feed subscribers
     pubsub.publish(EVENTS.POST_ADDED, { postAdded: populated });
 
     return populated!;
@@ -105,7 +102,6 @@ export const MutationResolvers = {
     await Post.findByIdAndDelete(id);
     await Comment.deleteMany({ post: id });
 
-    // Decrement hashtag counts
     const hashtags = (post as any).hashtags || [];
     if (hashtags.length > 0) {
       decrementHashtags(hashtags, 'postCount').catch(() => {});
@@ -143,7 +139,6 @@ export const MutationResolvers = {
     });
     await Post.findByIdAndUpdate(data.postId, { $inc: { commentCount: 1 } });
 
-    // Notify post author (skip self-comment)
     const authorId = String((post as any).author);
     if (authorId !== String(viewer._id)) {
       const notif = await Notification.create({
