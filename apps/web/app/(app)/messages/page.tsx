@@ -122,9 +122,19 @@ function ChatPanel({ conversationId, viewer, participants }: { conversationId: s
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-3 border-b shrink-0" style={{ borderColor: "var(--color-border)" }}>
         <Link href="/messages" className="md:hidden mr-1"><ArrowLeft size={20} style={{ color: "var(--color-text-primary)" }} /></Link>
-        {recipient && <Avatar src={recipient.avatarUrl} alt={recipient.displayName} size={36} />}
+        {recipient && (
+          <Link href={`/profile/${recipient.username}`}>
+            <Avatar src={recipient.avatarUrl} alt={recipient.displayName} size={36} />
+          </Link>
+        )}
         <div className="min-w-0 flex-1">
-          <p className="font-semibold text-sm truncate" style={{ color: "var(--color-text-primary)" }}>{recipient?.displayName ?? "Loading…"}</p>
+          {recipient ? (
+            <Link href={`/profile/${recipient.username}`}>
+              <p className="font-semibold text-sm truncate hover:underline" style={{ color: "var(--color-text-primary)" }}>{recipient.displayName}</p>
+            </Link>
+          ) : (
+            <p className="font-semibold text-sm truncate" style={{ color: "var(--color-text-primary)" }}>Loading…</p>
+          )}
           <p className="text-xs" style={{ color: "var(--color-text-secondary)" }}>Active now</p>
         </div>
       </div>

@@ -8,6 +8,7 @@ import { CREATE_OR_GET_CONVERSATION } from "@/lib/gql/mutations";
 import { PostCardCompact } from "@/components/post/PostCardCompact";
 import { FollowButton } from "@/components/user/FollowButton";
 import { Avatar } from "@/components/common/Avatar";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { VerifiedBadge } from "@/components/ui/VerifiedBadge";
 import { Loader2, Grid3x3, Film, Bookmark, MessageCircle, BarChart2, Settings } from "lucide-react";
 import { useState } from "react";
@@ -184,9 +185,10 @@ export default function ProfilePage() {
 
       {/* Grid */}
       {currentGrid.length === 0 ? (
-        <div className="py-16 text-center text-sm" style={{ color: "var(--color-text-secondary)" }}>
-          {tab === "posts" ? "No posts yet." : tab === "reels" ? "No reels yet." : "Nothing saved yet."}
-        </div>
+        <EmptyState
+          icon={tab === "posts" ? Grid3x3 : tab === "reels" ? Film : Bookmark}
+          title={tab === "posts" ? "No posts yet" : tab === "reels" ? "No reels yet" : "Nothing saved yet"}
+        />
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 2 }}>
           {tab === "reels"

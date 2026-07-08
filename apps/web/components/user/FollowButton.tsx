@@ -12,8 +12,26 @@ interface FollowButtonProps {
 }
 
 export function FollowButton({ username, isFollowing, className }: FollowButtonProps) {
-  const [follow,   { loading: following }] = useMutation(FOLLOW_USER,   { variables: { username } });
-  const [unfollow, { loading: unfollowing }] = useMutation(UNFOLLOW_USER, { variables: { username } });
+  const [follow,   { loading: following }] = useMutation(FOLLOW_USER,   { 
+    variables: { username },
+    update(cache) {
+      cache.evict({ fieldName: "feed" });
+      cache.evict({ fieldName: "suggestedUsers" });
+      cache.evict({ fieldName: "followers" });
+      cache.evict({ fieldName: "following" });
+      cache.gc();
+    }
+  });
+  const [unfollow, { loading: unfollowing }] = useMutation(UNFOLLOW_USER, { 
+    variables: { username },
+    update(cache) {
+      cache.evict({ fieldName: "feed" });
+      cache.evict({ fieldName: "suggestedUsers" });
+      cache.evict({ fieldName: "followers" });
+      cache.evict({ fieldName: "following" });
+      cache.gc();
+    }
+  });
   const loading = following || unfollowing;
 
   return (

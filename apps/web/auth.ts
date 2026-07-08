@@ -53,16 +53,41 @@ export const {
           user.name ||
           baseUsername;
 
-        // Upsert the application user. The aggregation pipeline update uses
-        // $ifNull so that an existing username is never overwritten — only
-        // missing/null usernames are back-filled from the email prefix.
+        // 1. Check if user already exists
+        let existingUser = await User.findOne({ email }).lean();
+        let targetUsername = baseUsername;
+
+        if (!existingUser) {
+          // 2. Generate a unique username if this is a new user
+          let isUnique = false;
+          let counter = 1;
+          while (!isUnique) {
+            const checkUsername = counter === 1 ? baseUsername : `${baseUsername}${counter}`;
+            const exists = await User.exists({ username: checkUsername });
+            if (!exists) {
+              targetUsername = checkUsername;
+              isUnique = true;
+            } else {
+              counter++;
+            }
+          }
+        }
+
+        // 3. Upsert the application user. 
+        // The aggregation pipeline update uses $ifNull so existing fields are never overwritten.
+        // We MUST initialize all non-nullable GraphQL fields here because pipeline updates bypass Mongoose defaults.
         const dbUser = await User.findOneAndUpdate(
           { email },
           [
             {
               $set: {
-                displayName,
-                username: { $ifNull: ["$username", baseUsername] },
+                displayName: { $ifNull: ["$displayName", displayName] },
+                username: { $ifNull: ["$username", targetUsername] },
+                isVerified: { $ifNull: ["$isVerified", false] },
+                role: { $ifNull: ["$role", "user"] },
+                followerCount: { $ifNull: ["$followerCount", 0] },
+                followingCount: { $ifNull: ["$followingCount", 0] },
+                bookmarksCount: { $ifNull: ["$bookmarksCount", 0] },
               },
             },
           ],

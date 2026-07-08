@@ -20,9 +20,10 @@ export function ComposeForm({ onSuccess, autoFocus }: ComposeFormProps) {
   const [createPost, { loading, error }] = useMutation(CREATE_POST, {
     variables: { input: { content, imageUrl: imageUrl || undefined } },
     update(cache, { data }) {
-      // Evict feed/posts so they refetch with the new post at top
+      // Evict feed/posts/userPosts so they refetch with the new post at top
       cache.evict({ fieldName: "feed" });
       cache.evict({ fieldName: "posts" });
+      cache.evict({ fieldName: "userPosts" });
       cache.gc();
     },
     onCompleted: () => {
