@@ -271,6 +271,3 @@ This project is licensed under the [MIT License](LICENSE).
 
 ---
 
-<div align="center">
-  <p>Built with ❤️ by <a href="https://github.com/Stefin">Stefin</a></p>
-</div>
